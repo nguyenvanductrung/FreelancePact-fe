@@ -1,140 +1,43 @@
 "use client";
 
-import { useState, FormEvent, useId } from "react";
+import { useState, FormEvent } from "react";
 import Link from "next/link";
 import {
-  Bell,
   Plus,
   Trash2,
-  ChevronDown,
   CalendarDays,
   FileSignature,
   Info,
   Save,
-  AlertCircle,
-  X,
 } from "lucide-react";
-import { LogoIcon } from "@/components/LogoIcon";
+import { NavBar } from "@/components/shared/NavBar";
+import { Footer } from "@/components/shared/Footer";
+import { SectionCard, SectionHeading } from "@/components/shared/SectionCard";
+import { NAVY, PAYMENT_TERM_OPTIONS } from "@/constants";
+import { contractsApi } from "@/lib/api";
+import type { Milestone, PaymentTerm, CreateContractPayload } from "@/types";
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const NAVY = "#0B3C5D";
-
-const PARTNER_OPTIONS = [
-  { value: "", label: "Nhập tên khách hàng" },
-  { value: "acme", label: "Acme Corporation" },
-  { value: "nova", label: "Nova Digital Studio" },
-  { value: "greenleaf", label: "Greenleaf Ventures" },
-  { value: "techbridge", label: "TechBridge Inc." },
-];
-
-const PAYMENT_TERM_OPTIONS = [
-  {
-    value: "escrow-milestone",
-    label: "Escrow theo Milestone",
-    desc: "Thanh toán được giữ trong ví escrow và giải phóng khi mỗi milestone hoàn thành.",
-  },
-  {
-    value: "escrow-full",
-    label: "Escrow toàn bộ",
-    desc: "Toàn bộ ngân sách được escrow ngay khi ký hợp đồng, giải phóng khi nghiệm thu cuối.",
-  },
-  {
-    value: "net-15",
-    label: "Net-15",
-    desc: "Thanh toán trong vòng 15 ngày kể từ ngày xuất hóa đơn.",
-  },
-  {
-    value: "net-30",
-    label: "Net-30",
-    desc: "Thanh toán trong vòng 30 ngày kể từ ngày xuất hóa đơn.",
-  },
-];
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface Milestone {
-  id: string;
-  name: string;
-  budget: string;
-  deadline: string;
-}
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 let milestoneCounter = 3;
 
 function createMilestone(): Milestone {
-  return { id: `ms-${milestoneCounter++}`, name: "", budget: "", deadline: "" };
+  return {
+    id: `ms-${milestoneCounter++}`,
+    name: "",
+    budget: 0,
+    deadline: "",
+    status: "pending",
+    progressPercent: 0,
+  };
 }
 
-// ─── Shared Input styles ──────────────────────────────────────────────────────
+// ─── Shared input styles ──────────────────────────────────────────────────────
 
 const inputCls =
   "w-full px-3 py-2 text-sm text-gray-800 bg-white border border-gray-300 rounded-md outline-none transition-all placeholder:text-gray-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100";
 
 const labelCls = "block text-xs font-semibold text-gray-600 mb-1";
-
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
-/** Top navigation bar */
-function NavBar() {
-  return (
-    <nav className="sticky top-0 z-30 flex items-center justify-between px-8 py-3 bg-white border-b border-gray-200 shadow-sm">
-      <Link href="/" className="flex items-center gap-2 select-none">
-        <LogoIcon className="w-8 h-8" style={{ color: NAVY }} />
-        <span className="text-base font-bold" style={{ color: NAVY }}>
-          FreelancePact
-        </span>
-      </Link>
-
-      <div className="hidden md:flex items-center gap-8">
-        <Link href="#" className="text-sm text-gray-500 hover:text-gray-800 transition-colors">
-          Dashboard
-        </Link>
-        <Link
-          href="/contracts"
-          className="text-sm font-semibold border-b-2 pb-0.5"
-          style={{ color: NAVY, borderColor: NAVY }}
-        >
-          My Contracts
-        </Link>
-        <Link href="#" className="text-sm text-gray-500 hover:text-gray-800 transition-colors">
-          Templates
-        </Link>
-      </div>
-
-      <button className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 transition-colors">
-        <Bell className="w-5 h-5" />
-        <span className="hidden sm:inline">Notifications</span>
-      </button>
-    </nav>
-  );
-}
-
-/** Section wrapper card */
-function SectionCard({
-  children,
-  className = "",
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <div
-      className={`bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden ${className}`}
-    >
-      {children}
-    </div>
-  );
-}
-
-/** Section heading inside a card */
-function SectionHeading({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="px-6 pt-5 pb-4 border-b border-gray-100">
-      <h2 className="text-base font-bold text-gray-800">{children}</h2>
-    </div>
-  );
-}
 
 // ─── Milestone Row ────────────────────────────────────────────────────────────
 
@@ -148,7 +51,7 @@ function MilestoneRow({
   index: number;
   milestone: Milestone;
   canDelete: boolean;
-  onChange: (id: string, field: keyof Milestone, value: string) => void;
+  onChange: (id: string, field: "name" | "budget" | "deadline", value: string) => void;
   onDelete: (id: string) => void;
 }) {
   const nameId = `ms-name-${milestone.id}`;
@@ -157,7 +60,6 @@ function MilestoneRow({
 
   return (
     <div className="border border-gray-200 rounded-lg p-4 bg-gray-50/50 space-y-3">
-      {/* Row header */}
       <div className="flex items-center justify-between">
         <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">
           Giai đoạn {index + 1}
@@ -174,13 +76,10 @@ function MilestoneRow({
         )}
       </div>
 
-      {/* Fields row */}
       <div className="grid grid-cols-1 sm:grid-cols-[1fr_180px_180px] gap-3">
         {/* Name */}
         <div>
-          <label htmlFor={nameId} className={labelCls}>
-            Tên giai đoạn
-          </label>
+          <label htmlFor={nameId} className={labelCls}>Tên giai đoạn</label>
           <input
             id={nameId}
             type="text"
@@ -193,15 +92,13 @@ function MilestoneRow({
 
         {/* Budget */}
         <div>
-          <label htmlFor={budgetId} className={labelCls}>
-            Số tiền (VNĐ)
-          </label>
+          <label htmlFor={budgetId} className={labelCls}>Số tiền (VNĐ)</label>
           <div className="relative">
             <input
               id={budgetId}
               type="number"
               min="0"
-              value={milestone.budget}
+              value={milestone.budget || ""}
               onChange={(e) => onChange(milestone.id, "budget", e.target.value)}
               placeholder="0"
               className={`${inputCls} pr-12 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none`}
@@ -214,109 +111,116 @@ function MilestoneRow({
 
         {/* Deadline */}
         <div>
-          <label htmlFor={deadlineId} className={labelCls}>
-            Thời hạn (Ngày)
-          </label>
-          <div className="relative">
-            <input
-              id={deadlineId}
-              type="date"
-              value={milestone.deadline}
-              onChange={(e) => onChange(milestone.id, "deadline", e.target.value)}
-              className={`${inputCls} pr-8`}
-            />
-          </div>
+          <label htmlFor={deadlineId} className={labelCls}>Thời hạn</label>
+          <input
+            id={deadlineId}
+            type="date"
+            value={milestone.deadline}
+            onChange={(e) => onChange(milestone.id, "deadline", e.target.value)}
+            className={`${inputCls} pr-8`}
+          />
         </div>
       </div>
     </div>
   );
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function CreateContractPage() {
-  // ── Form state ──────────────────────────────────────────────────────────────
   const [contractTitle, setContractTitle] = useState("");
-  const [partner, setPartner] = useState("");
+  const [partnerName, setPartnerName] = useState("");
   const [description, setDescription] = useState("");
   const [milestones, setMilestones] = useState<Milestone[]>([
-    { id: "ms-1", name: "Liên ý tưởng thiết kế", budget: "5000000", deadline: "" },
-    { id: "ms-2", name: "", budget: "", deadline: "" },
+    { id: "ms-1", name: "Liên ý tưởng thiết kế", budget: 5000000, deadline: "", status: "pending", progressPercent: 0 },
+    { id: "ms-2", name: "", budget: 0, deadline: "", status: "pending", progressPercent: 0 },
   ]);
-  const [paymentTerm, setPaymentTerm] = useState("escrow-milestone");
+  const [paymentTerm, setPaymentTerm] = useState<PaymentTerm>("escrow-milestone");
   const [specialTerms, setSpecialTerms] = useState("");
   const [saving, setSaving] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // ── Total calculation ────────────────────────────────────────────────────────
-  const totalVND = milestones.reduce((sum, m) => {
-    const val = parseFloat(m.budget.replace(/,/g, "") || "0");
-    return sum + (isNaN(val) ? 0 : val);
-  }, 0);
-
+  // ── Total ──────────────────────────────────────────────────────────────────
+  const totalVND = milestones.reduce((sum, m) => sum + (m.budget || 0), 0);
   const formattedTotal = new Intl.NumberFormat("vi-VN").format(totalVND);
 
-  // ── Milestone handlers ───────────────────────────────────────────────────────
+  // ── Milestone handlers ─────────────────────────────────────────────────────
   const handleMilestoneChange = (
     id: string,
-    field: keyof Milestone,
+    field: "name" | "budget" | "deadline",
     value: string
   ) => {
     setMilestones((prev) =>
-      prev.map((m) => (m.id === id ? { ...m, [field]: value } : m))
+      prev.map((m) =>
+        m.id === id
+          ? { ...m, [field]: field === "budget" ? Number(value) : value }
+          : m
+      )
     );
   };
 
-  const handleAddMilestone = () => {
+  const handleAddMilestone = () =>
     setMilestones((prev) => [...prev, createMilestone()]);
-  };
 
-  const handleDeleteMilestone = (id: string) => {
+  const handleDeleteMilestone = (id: string) =>
     setMilestones((prev) => prev.filter((m) => m.id !== id));
-  };
 
-  // ── Submit ───────────────────────────────────────────────────────────────────
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  // ── Submit ─────────────────────────────────────────────────────────────────
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const payload = {
-      contractTitle,
-      partner,
+    setError(null);
+    setSubmitting(true);
+
+    const payload: CreateContractPayload = {
+      title: contractTitle,
+      partnerName,
       description,
-      milestones: milestones.map(({ id: _id, ...rest }) => rest),
       paymentTerm,
-      specialTerms,
-      totalVND,
+      specialTerms: specialTerms || undefined,
+      milestones: milestones.map(({ id: _id, status: _s, progressPercent: _p, ...rest }) => rest),
     };
-    console.log("📄 Create Contract payload:", payload);
-    alert("Hợp đồng đã được tạo thành công! (xem console)");
+
+    try {
+      // TODO: replace console.log with real API call when BE is ready
+      // const result = await contractsApi.create(payload);
+      // router.push(`/contracts/${result.data.id}`);
+      console.log("📄 Create Contract payload:", payload);
+      alert("Hợp đồng đã được tạo thành công! (xem console)");
+    } catch (err: unknown) {
+      const message = (err as { message?: string })?.message ?? "Đã xảy ra lỗi.";
+      setError(message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const handleSaveDraft = () => {
+  const handleSaveDraft = async () => {
     setSaving(true);
-    setTimeout(() => setSaving(false), 1200);
-    console.log("💾 Draft saved:", { contractTitle, partner, milestones });
+    try {
+      // TODO: call contractsApi.create({ ...payload, status: 'draft' })
+      console.log("💾 Draft saved:", { contractTitle, partnerName, milestones });
+    } finally {
+      setTimeout(() => setSaving(false), 1200);
+    }
   };
 
-  const selectedPaymentOption = PAYMENT_TERM_OPTIONS.find(
-    (o) => o.value === paymentTerm
-  );
+  const selectedPaymentOption = PAYMENT_TERM_OPTIONS.find((o) => o.value === paymentTerm);
 
-  // ── Render ───────────────────────────────────────────────────────────────────
   return (
     <div
       className="min-h-screen flex flex-col"
       style={{ backgroundColor: "#F8FAFC", fontFamily: "Inter, system-ui, sans-serif" }}
     >
-      <NavBar />
+      <NavBar activePage="Contracts" />
 
       <main className="flex-1 w-full max-w-3xl mx-auto px-4 py-8">
-        {/* ── Page header ─────────────────────────────────────────────────── */}
+        {/* Page header */}
         <div className="flex items-start justify-between mb-7">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <FileSignature className="w-6 h-6" style={{ color: NAVY }} />
-              <h1 className="text-2xl font-extrabold text-gray-900">
-                Tạo Hợp Đồng Mới
-              </h1>
+              <h1 className="text-2xl font-extrabold text-gray-900">Tạo Hợp Đồng Mới</h1>
             </div>
             <p className="text-sm text-gray-500">
               Điền các thông tin chi tiết để tạo hợp đồng dịch vụ tự do.
@@ -333,14 +237,18 @@ export default function CreateContractPage() {
           </button>
         </div>
 
+        {error && (
+          <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+            {error}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-5" noValidate>
-          {/* ── Section 1: General Information ─────────────────────────── */}
+          {/* ── Section 1: General Information */}
           <SectionCard>
             <SectionHeading>Thông Tin Chung</SectionHeading>
             <div className="px-6 py-5 space-y-5">
-              {/* Two-col row */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Contract title */}
                 <div>
                   <label htmlFor="contract-title" className={labelCls}>
                     Tiêu đề hợp đồng <span className="text-red-500">*</span>
@@ -355,38 +263,23 @@ export default function CreateContractPage() {
                     className={inputCls}
                   />
                 </div>
-
-                {/* Partner */}
                 <div>
-                  <label htmlFor="partner" className={labelCls}>
-                    Tên Khách hàng / Doanh nghiệp{" "}
-                    <span className="text-red-500">*</span>
+                  <label htmlFor="partner-name" className={labelCls}>
+                    Tên Khách hàng / Doanh nghiệp <span className="text-red-500">*</span>
                   </label>
-                  <div className="relative">
-                    <input
-                      id="partner"
-                      type="text"
-                      required
-                      value={partner}
-                      onChange={(e) => setPartner(e.target.value)}
-                      placeholder="Nhập tên khách hàng"
-                      className={inputCls}
-                      list="partner-suggestions"
-                    />
-                    <datalist id="partner-suggestions">
-                      {PARTNER_OPTIONS.filter((o) => o.value).map((o) => (
-                        <option key={o.value} value={o.label} />
-                      ))}
-                    </datalist>
-                  </div>
+                  <input
+                    id="partner-name"
+                    type="text"
+                    required
+                    value={partnerName}
+                    onChange={(e) => setPartnerName(e.target.value)}
+                    placeholder="Nhập tên khách hàng"
+                    className={inputCls}
+                  />
                 </div>
               </div>
-
-              {/* Description */}
               <div>
-                <label htmlFor="description" className={labelCls}>
-                  Mô tả tóm tắt dự án
-                </label>
+                <label htmlFor="description" className={labelCls}>Mô tả tóm tắt dự án</label>
                 <textarea
                   id="description"
                   rows={4}
@@ -399,12 +292,11 @@ export default function CreateContractPage() {
             </div>
           </SectionCard>
 
-          {/* ── Section 2: Milestones ───────────────────────────────────── */}
+          {/* ── Section 2: Milestones */}
           <SectionCard>
             <div className="px-6 pt-5 pb-3 border-b border-gray-100 flex items-center justify-between">
               <h2 className="text-base font-bold text-gray-800">
-                Giai Đoạn{" "}
-                <span className="font-normal text-gray-500">(Milestones)</span>
+                Giai Đoạn <span className="font-normal text-gray-500">(Milestones)</span>
               </h2>
               <button
                 type="button"
@@ -412,11 +304,9 @@ export default function CreateContractPage() {
                 className="flex items-center gap-1 text-sm font-semibold transition-colors hover:opacity-75"
                 style={{ color: NAVY }}
               >
-                <Plus className="w-3.5 h-3.5" />
-                Thêm Giai Đoạn
+                <Plus className="w-3.5 h-3.5" /> Thêm Giai Đoạn
               </button>
             </div>
-
             <div className="px-6 py-5 space-y-3">
               {milestones.map((ms, i) => (
                 <MilestoneRow
@@ -428,15 +318,10 @@ export default function CreateContractPage() {
                   onDelete={handleDeleteMilestone}
                 />
               ))}
-
-              {/* Total */}
               <div className="flex justify-end pt-2 border-t border-gray-100 mt-4">
                 <div className="flex items-baseline gap-2">
                   <span className="text-sm text-gray-500">Tổng Giá Trị:</span>
-                  <span
-                    className="text-base font-extrabold"
-                    style={{ color: NAVY }}
-                  >
+                  <span className="text-base font-extrabold" style={{ color: NAVY }}>
                     {formattedTotal} VNĐ
                   </span>
                 </div>
@@ -444,21 +329,21 @@ export default function CreateContractPage() {
             </div>
           </SectionCard>
 
-          {/* ── Section 3: Payment Terms ────────────────────────────────── */}
+          {/* ── Section 3: Payment Terms */}
           <SectionCard>
             <SectionHeading>Điều Khoản Thanh Toán</SectionHeading>
             <div className="px-6 py-5 space-y-4">
-              {/* Radio choice cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {PAYMENT_TERM_OPTIONS.map((opt) => {
                   const isSelected = paymentTerm === opt.value;
                   return (
                     <label
                       key={opt.value}
-                      className={`flex items-start gap-3 p-3.5 rounded-lg border-2 cursor-pointer transition-all ${isSelected
+                      className={`flex items-start gap-3 p-3.5 rounded-lg border-2 cursor-pointer transition-all ${
+                        isSelected
                           ? "border-blue-500 bg-blue-50/60"
                           : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
-                        }`}
+                      }`}
                     >
                       <input
                         type="radio"
@@ -469,16 +354,10 @@ export default function CreateContractPage() {
                         className="mt-0.5 accent-blue-600 flex-shrink-0"
                       />
                       <div>
-                        <p
-                          className={`text-sm font-semibold ${isSelected ? "text-blue-800" : "text-gray-800"
-                            }`}
-                        >
+                        <p className={`text-sm font-semibold ${isSelected ? "text-blue-800" : "text-gray-800"}`}>
                           {opt.label}
                         </p>
-                        <p
-                          className={`text-xs mt-0.5 leading-relaxed ${isSelected ? "text-blue-600" : "text-gray-400"
-                            }`}
-                        >
+                        <p className={`text-xs mt-0.5 leading-relaxed ${isSelected ? "text-blue-600" : "text-gray-400"}`}>
                           {opt.desc}
                         </p>
                       </div>
@@ -486,8 +365,6 @@ export default function CreateContractPage() {
                   );
                 })}
               </div>
-
-              {/* Helper info banner */}
               {selectedPaymentOption && (
                 <div className="flex items-start gap-2 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-lg">
                   <Info className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
@@ -500,7 +377,7 @@ export default function CreateContractPage() {
             </div>
           </SectionCard>
 
-          {/* ── Section 4: Special Clauses ──────────────────────────────── */}
+          {/* ── Section 4: Special Clauses */}
           <SectionCard>
             <SectionHeading>Điều Khoản Khác</SectionHeading>
             <div className="px-6 py-5">
@@ -519,13 +396,9 @@ export default function CreateContractPage() {
             </div>
           </SectionCard>
 
-          {/* ── Bottom Actions ──────────────────────────────────────────── */}
+          {/* ── Bottom Actions */}
           <div className="flex items-center justify-between gap-3 pt-2 pb-6">
-            {/* Left hint */}
-            <p className="text-xs text-gray-400 hidden sm:block">
-              * Các trường bắt buộc phải điền.
-            </p>
-
+            <p className="text-xs text-gray-400 hidden sm:block">* Các trường bắt buộc phải điền.</p>
             <div className="flex items-center gap-3 ml-auto">
               <Link
                 href="/contracts"
@@ -535,41 +408,19 @@ export default function CreateContractPage() {
               </Link>
               <button
                 type="submit"
-                className="flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white rounded-lg transition-opacity hover:opacity-90 active:scale-[0.98] shadow-md"
+                disabled={submitting}
+                className="flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white rounded-lg transition-opacity hover:opacity-90 active:scale-[0.98] shadow-md disabled:opacity-60"
                 style={{ backgroundColor: NAVY }}
               >
                 <FileSignature className="w-4 h-4" />
-                Tạo Hợp Đồng
+                {submitting ? "Đang tạo…" : "Tạo Hợp Đồng"}
               </button>
             </div>
           </div>
         </form>
       </main>
 
-      {/* ── Footer ──────────────────────────────────────────────────────────── */}
-      <footer className="border-t border-gray-200 bg-white px-8 py-4">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-2">
-          <div>
-            <p className="text-sm font-bold" style={{ color: NAVY }}>
-              FreelancePact
-            </p>
-            <p className="text-xs text-gray-400">
-              © 2024 FreelancePact. Secure Payments. Legal Contracts.
-            </p>
-          </div>
-          <nav className="flex items-center gap-5">
-            {["Terms of Service", "Privacy Policy", "Contact Support"].map((l) => (
-              <Link
-                key={l}
-                href="#"
-                className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                {l}
-              </Link>
-            ))}
-          </nav>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
