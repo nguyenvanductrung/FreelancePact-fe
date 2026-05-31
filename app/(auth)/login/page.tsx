@@ -2,6 +2,7 @@
 
 import { useState, FormEvent } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
@@ -61,13 +62,43 @@ import { LogoIcon } from "@/components/LogoIcon";
 // ─── Main Page ───────────────────────────────────────────────────────────────
 
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log("Login form submitted:", { email, password });
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const res = await fetch("http://localhost:3001/api/v1/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        const errMessage = data.errors ? Object.values(data.errors).flat().join(', ') : data.message;
+        throw new Error(errMessage || "Đăng nhập thất bại");
+      }
+
+      // Save tokens
+      localStorage.setItem("accessToken", data.data.accessToken);
+      localStorage.setItem("refreshToken", data.data.refreshToken);
+      
+      // Redirect
+      router.push("/contracts");
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -243,22 +274,30 @@ export default function LoginPage() {
                 </div>
               </div>
 
+              {/* Error Message */}
+              {error && (
+                <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg">
+                  {error}
+                </div>
+              )}
+
               {/* Submit */}
               <Button
                 id="btn-login"
                 type="submit"
-                className="w-full h-11 text-sm font-semibold text-white transition-colors duration-200"
+                disabled={isLoading}
+                className="w-full h-11 text-sm font-semibold text-white transition-colors duration-200 disabled:opacity-70 disabled:cursor-not-allowed"
                 style={{
                   backgroundColor: "#1E3A5F",
                 }}
                 onMouseEnter={(e) =>
-                  (e.currentTarget.style.backgroundColor = "#16304F")
+                  !isLoading && (e.currentTarget.style.backgroundColor = "#16304F")
                 }
                 onMouseLeave={(e) =>
-                  (e.currentTarget.style.backgroundColor = "#1E3A5F")
+                  !isLoading && (e.currentTarget.style.backgroundColor = "#1E3A5F")
                 }
               >
-                Log In
+                {isLoading ? "Đang xử lý..." : "Log In"}
               </Button>
             </form>
 
