@@ -14,19 +14,29 @@ FreelancePact/
 │   ├── layout.tsx              # Root layout (metadata, fonts)
 │   ├── page.tsx                # Home (redirect hoặc landing)
 │   ├── (auth)/
-│   │   └── login/page.tsx      # Login page
+│   │   ├── login/page.tsx      # Màn hình đăng nhập
+│   │   └── register/page.tsx   # Màn hình đăng ký
 │   ├── contracts/
-│   │   ├── page.tsx            # Redirect → /contracts/:id
-│   │   ├── new/page.tsx        # Tạo hợp đồng mới ← CREATE CONTRACT
-│   │   └── [id]/page.tsx       # Chi tiết hợp đồng  ← CONTRACT DETAIL
+│   │   ├── page.tsx            # Chợ hợp đồng (Marketplace)
+│   │   ├── new/page.tsx        # Tạo hợp đồng mới
+│   │   └── [id]/page.tsx       # Chi tiết hợp đồng (gồm modal SubmitMilestoneModal)
+│   ├── dashboard/
+│   │   ├── page.tsx            # Dashboard cho Freelancer
+│   │   └── client/page.tsx     # Dashboard cho Client
+│   ├── messages/
+│   │   └── page.tsx            # Màn hình chat/tin nhắn tập trung
+│   ├── notifications/
+│   │   └── page.tsx            # Trung tâm thông báo
 │   └── profile/
-│       └── page.tsx            # Hồ sơ người dùng   ← USER PROFILE
+│       └── page.tsx            # Hồ sơ người dùng
 │
 ├── components/
 │   ├── shared/
 │   │   ├── NavBar.tsx          # Thanh điều hướng dùng chung
 │   │   ├── Footer.tsx          # Footer dùng chung
 │   │   └── SectionCard.tsx     # Card section dùng chung
+│   ├── milestones/
+│   │   └── SubmitMilestoneModal.tsx # Modal nộp kết quả milestone
 │   ├── LogoIcon.tsx
 │   └── ui/                     # shadcn/ui components
 │
@@ -127,6 +137,33 @@ Authorization: Bearer <accessToken>
 ```
 
 **Lỗi:** `401` Sai email/mật khẩu · `422` Validation failed
+
+---
+
+#### `POST /auth/register`
+Đăng ký tài khoản mới (cho Freelancer hoặc Client).
+
+**Request body:**
+```json
+{
+  "fullName": "Nguyen Van A",
+  "email": "user@example.com",
+  "password": "securePassword123",
+  "role": "freelancer"
+}
+```
+
+**Response 200:**
+```json
+{
+  "data": {
+    "accessToken": "eyJhbGci...",
+    "refreshToken": "eyJhbGci..."
+  }
+}
+```
+
+**Lỗi:** `400` Email đã tồn tại hoặc thông tin không hợp lệ · `422` Validation failed
 
 ---
 
@@ -311,8 +348,37 @@ Ký duyệt hợp đồng.
 
 ### 3.4 Chat / Discussion Module
 
-> FE hiển thị chat trong tab "Thảo luận" của `/contracts/[id]`.
+> FE hiển thị chat trong tab "Thảo luận" của `/contracts/[id]` và giao diện nhắn tin tập trung tại `/messages`.
 > **Phase 1:** REST polling. **Phase 2:** WebSocket (Socket.IO).
+
+#### `GET /conversations`
+Lấy danh sách các cuộc hội thoại hiện tại của người dùng.
+
+**Query params:** `page` (default 1), `pageSize` (default 20)
+
+**Response 200:**
+```json
+{
+  "data": [
+    {
+      "id": "conv-1",
+      "contractId": "CTR-2024-892",
+      "contractName": "Website Redesign",
+      "partnerId": "u-1",
+      "partnerName": "Acme Corp",
+      "partnerAvatar": "AC",
+      "lastMessage": "I've uploaded the new assets.",
+      "timestamp": "2026-06-09T18:30:00Z",
+      "unreadCount": 2
+    }
+  ],
+  "total": 1,
+  "page": 1,
+  "pageSize": 20
+}
+```
+
+---
 
 #### `GET /contracts/:contractId/messages`
 Lấy lịch sử tin nhắn.
@@ -491,16 +557,136 @@ Giải phóng escrow sau khi milestone hoàn thành.
 
 ---
 
+### 3.7 Notifications Module
+
+#### `GET /notifications`
+Lấy danh sách các thông báo của người dùng hiện tại (phân nhóm theo ngày ở frontend).
+
+**Response 200:**
+```json
+{
+  "data": [
+    {
+      "id": "notif-1",
+      "type": "payment",
+      "title": "Payment Released",
+      "description": "Acme Corp has released 10,000,000 ₫ for Milestone 1.",
+      "timestamp": "2026-06-09T18:00:00Z",
+      "isRead": false,
+      "contractId": "CTR-2024-892"
+    }
+  ]
+}
+```
+
+**Notification type enum:** `contract | milestone | payment | dispute | system` (tương ứng ở backend map từ các event `MILESTONE_SUBMITTED`, `MILESTONE_APPROVED`, `MILESTONE_REJECTED`, `CONTRACT_SIGNED`, `DISPUTE_OPENED`, `PAYMENT_RELEASED`, `NFT_MINTED` sang các tag tương ứng ở frontend).
+
+---
+
+#### `PATCH /notifications/:id/read`
+Đánh dấu một thông báo là đã đọc.
+
+**Response 200:** Notification object đã được cập nhật `isRead: true`.
+
+---
+
+#### `PATCH /notifications/read-all`
+Đánh dấu toàn bộ thông báo của người dùng hiện tại là đã đọc.
+
+**Response 200:**
+```json
+{
+  "message": "Marked all as read"
+}
+```
+
+---
+
+### 3.8 Milestones Module
+
+#### `POST /milestones/:id/submit`
+Freelancer nộp kết quả công việc kèm mô tả và tài liệu đính kèm cho milestone.
+
+**Request body:**
+```json
+{
+  "description": "I have finished the UI/UX mockups and exported them to PDF.",
+  "fileUrls": [
+    "https://cdn.example.com/files/wireframes_v1.pdf"
+  ]
+}
+```
+
+**Response 200:**
+```json
+{
+  "data": {
+    "id": "ms_002",
+    "status": "submitted",
+    "submissionNote": "I have finished the UI/UX mockups and exported them to PDF.",
+    "submittedAt": "2026-06-09T18:30:00Z"
+  }
+}
+```
+
+---
+
+#### `POST /milestones/:id/approve`
+Client phê duyệt kết quả milestone của freelancer (đổi status của Milestone sang `COMPLETED`).
+
+**Response 200:**
+```json
+{
+  "data": {
+    "id": "ms_002",
+    "status": "completed"
+  }
+}
+```
+
+---
+
+#### `POST /milestones/:id/reject`
+Client từ chối kết quả milestone và yêu cầu freelancer chỉnh sửa lại.
+
+**Request body:**
+```json
+{
+  "reason": "Please update the color scheme to match the brand identity guidelines."
+}
+```
+
+**Response 200:**
+```json
+{
+  "data": {
+    "id": "ms_002",
+    "status": "revision_requested",
+    "rejectionNote": "Please update the color scheme to match the brand identity guidelines."
+  }
+}
+```
+
+---
+
 ## 4. Screen-to-API Mapping
 
 | Màn hình | Route FE | APIs cần gọi |
 |---|---|---|
-| Login | `/login` | `POST /auth/login` |
+| Đăng nhập | `/login` | `POST /auth/login` |
+| Đăng ký | `/register` | `POST /auth/register` |
+| Dashboard (Freelancer) | `/dashboard` | `GET /contracts` (tính toán stats và lấy danh sách active contracts), `GET /milestones` (upcoming milestones), `GET /payments` (recent payments, total earned) |
+| Dashboard (Client) | `/dashboard/client` | `GET /contracts` (dự án của client), `GET /milestones/pending` (các milestone cần duyệt), `GET /escrow/summary` |
+| Chợ hợp đồng (Marketplace) | `/contracts` | `GET /contracts` (với các bộ lọc query: `search`, `category`, `budgetMin`, `budgetMax`, `sort`) |
 | Tạo hợp đồng | `/contracts/new` | `POST /contracts` |
 | Chi tiết hợp đồng | `/contracts/[id]` | `GET /contracts/:id`, `GET /contracts/:id/messages`, `POST /contracts/:id/messages`, `GET /contracts/:id/payments` |
-| Hồ sơ | `/profile` | `GET /users/:userId/profile` |
+| Tin nhắn tập trung | `/messages` | `GET /conversations`, `GET /contracts/:contractId/messages`, `POST /contracts/:contractId/messages` |
+| Trung tâm thông báo | `/notifications` | `GET /notifications`, `PATCH /notifications/read-all`, `PATCH /notifications/:id/read` |
+| Hồ sơ người dùng | `/profile` | `GET /users/:userId/profile`, `PATCH /users/me/profile` |
 | Ký hợp đồng | (button trong contract detail) | `POST /contracts/:id/sign` |
-| Duyệt milestone | (button trong contract detail) | `PATCH /contracts/:id/milestones/:milestoneId/complete` |
+| Nộp kết quả Milestone | (modal/drawer trong `/contracts/[id]`) | `POST /milestones/:id/submit` (kèm file uploads, description) |
+| Phê duyệt milestone | (button trong client dashboard / contract detail) | `POST /milestones/:id/approve` |
+| Yêu cầu sửa milestone | (button trong client dashboard / contract detail) | `POST /milestones/:id/reject` |
 | Giải phóng thanh toán | (button trong contract detail) | `POST /contracts/:id/payments/release` |
 
 ---
@@ -556,9 +742,10 @@ export const API_BASE_URL =
 
 | Component | File | Dùng ở |
 |---|---|---|
-| `<NavBar activePage="..." />` | `components/shared/NavBar.tsx` | Tất cả pages |
-| `<Footer />` | `components/shared/Footer.tsx` | Tất cả pages |
-| `<SectionCard>` / `<SectionHeading>` | `components/shared/SectionCard.tsx` | Create Contract form |
+| `<NavBar activePage="..." />` | `components/shared/NavBar.tsx` | Tất cả các trang |
+| `<Footer />` | `components/shared/Footer.tsx` | Tất cả các trang |
+| `<SectionCard>` / `<SectionHeading>` | `components/shared/SectionCard.tsx` | Form tạo hợp đồng |
+| `<SubmitMilestoneModal>` | `components/milestones/SubmitMilestoneModal.tsx` | Trang chi tiết hợp đồng `/contracts/[id]` khi freelancer nộp milestone |
 
 ---
 
@@ -583,6 +770,27 @@ Tìm các comment `// TODO:` trong code FE để kết nối API thực:
 // TODO: call profileApi.get(userId) để load dữ liệu thực
 ```
 
+### `app/dashboard/page.tsx` (Freelancer Dashboard)
+- Tích hợp gọi API lấy thông tin contracts, milestones và payments để cập nhật stats và danh sách động.
+
+### `app/dashboard/client/page.tsx` (Client Dashboard)
+- Tích hợp gọi API lấy thông tin projects, pending approvals (milestone cần duyệt) và escrow summary.
+- Xử lý sự kiện "Approve" (gọi `POST /milestones/:id/approve`) và "Reject" (gọi `POST /milestones/:id/reject`).
+
+### `app/contracts/page.tsx` (Contracts Marketplace)
+- Thay thế mock listings bằng gọi API `GET /contracts` có truyền tham số bộ lọc (`search`, `category`, `budgetMin`, `budgetMax`, `sort`).
+
+### `app/messages/page.tsx` (Centralized Messages)
+- Gọi API `GET /conversations` để tải danh sách các cuộc hội thoại.
+- Gọi API `GET /contracts/:contractId/messages` và gửi tin nhắn qua `POST /contracts/:contractId/messages` (sẽ nâng cấp lên WebSocket ở Phase 2).
+
+### `app/notifications/page.tsx` (Notification Center)
+- Gọi API `GET /notifications` để tải danh sách thông báo.
+- Gọi API `PATCH /notifications/:id/read` khi click vào thông báo và `PATCH /notifications/read-all` khi nhấn "Mark all as read".
+
+### `components/milestones/SubmitMilestoneModal.tsx` (Submit Milestone Modal)
+- Upload tài liệu minh chứng lên kho lưu trữ (S3/IPFS) rồi gọi `POST /milestones/:id/submit` kèm link file và ghi chú công việc.
+
 ---
 
 ## 10. Cấu trúc folder đề xuất cho NestJS BE
@@ -590,10 +798,11 @@ Tìm các comment `// TODO:` trong code FE để kết nối API thực:
 ```
 src/
 ├── auth/
-│   ├── auth.controller.ts      # POST /auth/login, /logout, /me, /refresh
+│   ├── auth.controller.ts      # POST /auth/login, /logout, /me, /refresh, /register
 │   ├── auth.service.ts
 │   └── dto/
 │       ├── login.dto.ts
+│       ├── register.dto.ts
 │       └── auth-tokens.dto.ts
 │
 ├── contracts/
@@ -603,10 +812,21 @@ src/
 │       ├── create-contract.dto.ts
 │       └── contract-response.dto.ts
 │
+├── milestones/
+│   ├── milestones.controller.ts # POST /milestones/:id/submit, /approve, /reject
+│   ├── milestones.service.ts
+│   └── dto/
+│       ├── submit-milestone.dto.ts
+│       └── reject-milestone.dto.ts
+│
 ├── messages/
-│   ├── messages.controller.ts   # GET/POST /contracts/:contractId/messages
+│   ├── messages.controller.ts   # GET /conversations, GET/POST /contracts/:contractId/messages
 │   └── dto/
 │       └── send-message.dto.ts
+│
+├── notifications/
+│   ├── notifications.controller.ts # GET /notifications, PATCH /notifications/:id/read, /read-all
+│   └── notifications.service.ts
 │
 ├── users/
 │   ├── users.controller.ts      # GET /users/:userId/profile, PATCH /users/me/profile
