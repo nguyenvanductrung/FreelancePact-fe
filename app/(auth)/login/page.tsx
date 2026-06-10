@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Eye, EyeOff } from "lucide-react";
+import { useGoogleLogin } from "@react-oauth/google";
 
 // ─── Inline SVG Icons ───────────────────────────────────────────────────────
 
@@ -91,7 +92,7 @@ export default function LoginPage() {
       // Save tokens
       localStorage.setItem("accessToken", data.data.accessToken);
       localStorage.setItem("refreshToken", data.data.refreshToken);
-      
+
       // Redirect
       router.push("/contracts");
     } catch (err: any) {
@@ -100,6 +101,40 @@ export default function LoginPage() {
       setIsLoading(false);
     }
   };
+
+  const loginWithGoogle = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const res = await fetch("http://localhost:3001/api/v1/auth/google", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ accessToken: tokenResponse.access_token }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          const errMessage = data.errors ? Object.values(data.errors).flat().join(', ') : data.message;
+          throw new Error(errMessage || "Đăng nhập Google thất bại");
+        }
+
+        // Save tokens
+        localStorage.setItem("accessToken", data.data.accessToken);
+        localStorage.setItem("refreshToken", data.data.refreshToken);
+
+        // Redirect
+        router.push("/contracts");
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    onError: () => setError("Google Login failed or was cancelled"),
+  });
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row font-sans">
@@ -183,7 +218,7 @@ export default function LoginPage() {
                 type="button"
                 variant="outline"
                 className="w-full h-11 text-sm font-medium gap-3 border-gray-300 hover:bg-gray-50 transition-colors"
-                onClick={() => console.log("Google OAuth clicked")}
+                onClick={() => loginWithGoogle()}
               >
                 <GoogleIcon />
                 Continue with Google
