@@ -3,6 +3,8 @@
 import { useState, FormEvent, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
+import { useGoogleLogin } from "@react-oauth/google";
+import { authApi } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
@@ -76,6 +78,24 @@ function RegisterForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const loginWithGoogle = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const res = await authApi.googleLogin(tokenResponse.access_token);
+        localStorage.setItem("accessToken", res.data.accessToken);
+        localStorage.setItem("refreshToken", res.data.refreshToken);
+        router.push("/contracts");
+      } catch (err: any) {
+        setError(err.message || "Đăng ký/Đăng nhập Google thất bại");
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    onError: () => setError("Đăng ký/Đăng nhập Google thất bại"),
+  });
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!agreed) {
@@ -142,6 +162,7 @@ function RegisterForm() {
               type="button"
               variant="outline"
               className="w-full h-11 text-sm font-medium gap-3 border-gray-300 hover:bg-gray-50 text-gray-700"
+              onClick={() => loginWithGoogle()}
             >
               <GoogleIcon />
               Đăng ký với Google

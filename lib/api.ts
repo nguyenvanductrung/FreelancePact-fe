@@ -96,6 +96,16 @@ export const authApi = {
       method: "POST",
       body: JSON.stringify({ refreshToken }),
     }),
+
+  /**
+   * POST /auth/google
+   * Body: { accessToken } → Response: AuthTokens
+   */
+  googleLogin: (accessToken: string) =>
+    request<ApiResponse<AuthTokens>>("/auth/google", {
+      method: "POST",
+      body: JSON.stringify({ accessToken }),
+    }),
 };
 
 // ─── Contracts API ────────────────────────────────────────────────────────────
