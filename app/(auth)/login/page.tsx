@@ -3,6 +3,8 @@
 import { useState, FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useGoogleLogin } from "@react-oauth/google";
+import { authApi } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
@@ -68,6 +70,24 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+  const loginWithGoogle = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const res = await authApi.googleLogin(tokenResponse.access_token);
+        localStorage.setItem("accessToken", res.data.accessToken);
+        localStorage.setItem("refreshToken", res.data.refreshToken);
+        router.push("/contracts");
+      } catch (err: any) {
+        setError(err.message || "Đăng nhập Google thất bại");
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    onError: () => setError("Đăng nhập Google thất bại"),
+  });
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -183,7 +203,7 @@ export default function LoginPage() {
                 type="button"
                 variant="outline"
                 className="w-full h-11 text-sm font-medium gap-3 border-gray-300 hover:bg-gray-50 transition-colors"
-                onClick={() => console.log("Google OAuth clicked")}
+                onClick={() => loginWithGoogle()}
               >
                 <GoogleIcon />
                 Continue with Google

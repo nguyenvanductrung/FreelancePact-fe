@@ -26,6 +26,7 @@ import {
   Users,
   TrendingUp,
 } from "lucide-react";
+import { SubmitMilestoneModal } from "@/components/milestones/SubmitMilestoneModal";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -392,28 +393,34 @@ function DiscussionPanel() {
 // ── Milestones tab placeholder ────────────────────────────────────────────────
 
 function MilestonesTab() {
+  const [submittingMilestone, setSubmittingMilestone] = useState<any>(null);
+
+  const MOCK_MILESTONES = [
+    { id: "m1", name: "Milestone 1 — Wireframes & Research", status: "completed", pct: 100, budget: 75000000, deadline: "2024-10-30T00:00:00Z" },
+    { id: "m2", name: "Milestone 2 — UI Design System", status: "active", pct: 40, budget: 75000000, deadline: "2024-11-15T00:00:00Z" },
+    { id: "m3", name: "Milestone 3 — Prototype & Testing", status: "pending", pct: 0, budget: 75000000, deadline: "2024-11-30T00:00:00Z" },
+    { id: "m4", name: "Milestone 4 — Final Delivery", status: "pending", pct: 0, budget: 75000000, deadline: "2024-12-15T00:00:00Z" },
+  ];
+
   return (
     <div className="flex flex-col gap-3">
-      {[
-        { label: "Milestone 1 — Wireframes & Research", status: "completed", pct: 100, amount: "$3,125", due: "30 Thg 10" },
-        { label: "Milestone 2 — UI Design System", status: "active", pct: 40, amount: "$3,125", due: "15 Thg 11" },
-        { label: "Milestone 3 — Prototype & Testing", status: "pending", pct: 0, amount: "$3,125", due: "30 Thg 11" },
-        { label: "Milestone 4 — Final Delivery", status: "pending", pct: 0, amount: "$3,125", due: "15 Thg 12" },
-      ].map((m) => (
-        <div key={m.label} className="bg-white border border-gray-200 rounded-xl p-4">
+      {MOCK_MILESTONES.map((m) => (
+        <div key={m.id} className="bg-white border border-gray-200 rounded-xl p-4">
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2">
               <div className={`w-3 h-3 rounded-full flex-shrink-0 ${m.status === "completed" ? "bg-emerald-500" :
                   m.status === "active" ? "bg-blue-500 animate-pulse" : "bg-gray-300"
                 }`} />
-              <span className="text-sm font-semibold text-gray-800">{m.label}</span>
+              <span className="text-sm font-semibold text-gray-800">{m.name}</span>
             </div>
-            <span className="text-sm font-bold flex-shrink-0" style={{ color: NAVY }}>{m.amount}</span>
+            <span className="text-sm font-bold flex-shrink-0" style={{ color: NAVY }}>
+              {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(m.budget)}
+            </span>
           </div>
           <div className="mt-3">
             <div className="flex justify-between text-xs text-gray-400 mb-1">
               <span>Tiến độ</span>
-              <span>Hạn: {m.due}</span>
+              <span>Hạn: {new Date(m.deadline).toLocaleDateString("vi-VN")}</span>
             </div>
             <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
               <div
@@ -425,8 +432,30 @@ function MilestonesTab() {
               />
             </div>
           </div>
+          {m.status === "active" && (
+            <div className="mt-4 pt-3 border-t border-gray-100 text-right">
+              <button
+                onClick={() => setSubmittingMilestone(m)}
+                className="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors hover:opacity-90"
+                style={{ backgroundColor: NAVY }}
+              >
+                Submit Milestone
+              </button>
+            </div>
+          )}
         </div>
       ))}
+
+      {submittingMilestone && (
+        <SubmitMilestoneModal
+          milestone={submittingMilestone}
+          onClose={() => setSubmittingMilestone(null)}
+          onSuccess={(id) => {
+            console.log("Milestone submitted:", id);
+            // Refresh list here
+          }}
+        />
+      )}
     </div>
   );
 }
