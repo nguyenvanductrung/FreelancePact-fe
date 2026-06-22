@@ -55,6 +55,11 @@ import type {
   Payment,
   PaginatedResponse,
   ApiResponse,
+  Job,
+  Application,
+  CreateJobPayload,
+  ApplyPayload,
+  JobFilters,
 } from "@/types";
 
 export const authApi = {
@@ -250,5 +255,52 @@ export const paymentsApi = {
       method: "POST",
       headers: authHeaders(),
       body: JSON.stringify({ milestoneId }),
+    }),
+};
+
+// ─── Jobs API ─────────────────────────────────────────────────────────────────
+
+export const jobsApi = {
+  create: (data: CreateJobPayload) =>
+    request<Job>("/jobs", {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify(data),
+    }),
+
+  getAll: (params?: JobFilters) => {
+    const query = new URLSearchParams();
+    if (params?.search) query.append("search", params.search);
+    if (params?.skills) query.append("skills", params.skills);
+    if (params?.budgetMin !== undefined) query.append("budgetMin", params.budgetMin.toString());
+    if (params?.budgetMax !== undefined) query.append("budgetMax", params.budgetMax.toString());
+    
+    const queryString = query.toString();
+    return request<Job[]>(`/jobs${queryString ? `?${queryString}` : ""}`);
+  },
+
+  getMyJobs: () =>
+    request<Job[]>("/jobs/my-jobs", {
+      headers: authHeaders(),
+    }),
+
+  getById: (id: string) => request<Job>(`/jobs/${id}`),
+
+  apply: (jobId: string, data: ApplyPayload) =>
+    request<Application>(`/jobs/${jobId}/apply`, {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify(data),
+    }),
+
+  getApplications: (jobId: string) =>
+    request<Application[]>(`/jobs/${jobId}/applications`, {
+      headers: authHeaders(),
+    }),
+
+  selectFreelancer: (jobId: string, applicationId: string) =>
+    request<{ contractId: string }>(`/jobs/${jobId}/applications/${applicationId}/select`, {
+      method: "POST",
+      headers: authHeaders(),
     }),
 };
