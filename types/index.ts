@@ -181,3 +181,54 @@ export interface ApiError {
   message: string;
   errors?: Record<string, string[]>;
 }
+
+// ─── Jobs / Recruitment ────────────────────────────────────────────────────────
+
+export interface Job {
+  id: string;
+  title: string;
+  description?: string;
+  budget: number;           // ADA (Float)
+  duration?: string;
+  deadline?: string;        // ISO 8601 DateTime — tuỳ chọn
+  skills: string[];
+  status: 'OPEN' | 'DRAFT' | 'CLOSED';
+  clientId: string;
+  clientName?: string;      // populated từ BE include
+  applicationCount?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Application {
+  id: string;
+  jobId: string;
+  freelancerId: string;
+  freelancerName: string;
+  freelancerRating?: number;
+  coverLetter?: string;
+  proposedBudget?: number;  // ADA (Float)
+  status: 'PENDING' | 'ACCEPTED' | 'REJECTED';
+  createdAt: string;
+}
+
+export interface CreateJobPayload {
+  title: string;
+  description?: string;
+  budget: number;
+  duration?: string;
+  deadline?: string;
+  skills: string[];
+}
+
+export interface ApplyPayload {
+  coverLetter?: string;
+  proposedBudget?: number;
+}
+
+export interface JobFilters {
+  search?: string;
+  skills?: string;
+  budgetMin?: number;
+  budgetMax?: number;
+}

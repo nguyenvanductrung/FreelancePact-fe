@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, Briefcase, MessageSquare, User, AlertCircle } from "lucide-react";
+import { Bell, Briefcase, MessageSquare, User, AlertCircle, Search, Plus } from "lucide-react";
 import { LogoIcon } from "@/components/LogoIcon";
 import { NAVY } from "@/constants";
 
@@ -20,6 +20,7 @@ interface NavBarProps {
 }
 
 const DEFAULT_NAV_LINKS: NavLink[] = [
+  { href: "/jobs", label: "Find Work", icon: <Search className="w-3.5 h-3.5" /> },
   { href: "/contracts", label: "Contracts", icon: <Briefcase className="w-3.5 h-3.5" /> },
   { href: "/chat", label: "Chat", icon: <MessageSquare className="w-3.5 h-3.5" /> },
   { href: "/profile", label: "Profile", icon: <User className="w-3.5 h-3.5" /> },
@@ -63,7 +64,14 @@ export function NavBar({ activePage, userInitials = "JD" }: NavBarProps) {
       </div>
 
       {/* Right: bell + avatar */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 md:gap-5">
+        <Link 
+          href="/jobs/new"
+          className="hidden md:flex items-center gap-1.5 px-4 py-2 bg-[#4F6AF5] text-white text-sm font-semibold rounded-full hover:bg-[#3d55d9] transition-all shadow-sm hover:shadow active:scale-95"
+        >
+          <Plus className="w-4 h-4" />
+          Post a Job
+        </Link>
         <button
           className="relative p-1.5 text-gray-500 hover:text-gray-800 transition-colors"
           aria-label="Notifications"

@@ -669,15 +669,129 @@ Client từ chối kết quả milestone và yêu cầu freelancer chỉnh sửa
 
 ---
 
+---
+
+### 3.9 Jobs Module (Tuyển dụng)
+
+> Đơn vị tiền tệ `budget` của Job và `proposedBudget` của Application là **ADA (Float)**.
+
+#### `GET /jobs`
+Lấy danh sách các bài tuyển dụng đang mở (Marketplace). **Public API.**
+
+**Query params:** `search`, `skills` (comma separated), `budgetMin`, `budgetMax`
+
+**Response 200:**
+```json
+{
+  "data": [
+    {
+      "id": "job_1",
+      "title": "Thiết kế UI/UX dApp",
+      "description": "Cần người thiết kế giao diện cho dự án DeFi...",
+      "budget": 150.5,
+      "duration": "1-3 tháng",
+      "deadline": "2026-08-01T00:00:00Z",
+      "skills": ["Figma", "UI/UX"],
+      "status": "OPEN",
+      "clientId": "usr_client1",
+      "clientName": "Acme Corp",
+      "applicationCount": 3
+    }
+  ]
+}
+```
+
+---
+
+#### `GET /jobs/my-jobs`
+Lấy danh sách bài tuyển dụng do Client đang đăng nhập đã tạo.
+
+**Response 200:** Mảng Job (tương tự `/jobs`).
+
+---
+
+#### `POST /jobs`
+Client tạo bài tuyển dụng mới.
+
+**Request body:**
+```json
+{
+  "title": "Thiết kế UI/UX dApp",
+  "description": "Chi tiết yêu cầu...",
+  "budget": 150.5,
+  "duration": "1-3 tháng",
+  "deadline": "2026-08-01T00:00:00Z",
+  "skills": ["Figma"]
+}
+```
+
+**Response 201:** Job object.
+
+---
+
+#### `POST /jobs/:id/apply`
+Freelancer nộp hồ sơ ứng tuyển.
+
+**Request body:**
+```json
+{
+  "coverLetter": "Tôi có 5 năm kinh nghiệm...",
+  "proposedBudget": 140.0
+}
+```
+
+**Response 201:** Application object.
+
+---
+
+#### `GET /jobs/:id/applications`
+Client xem danh sách ứng viên đã nộp vào Job của mình.
+
+**Response 200:**
+```json
+{
+  "data": [
+    {
+      "id": "app_1",
+      "jobId": "job_1",
+      "freelancerId": "usr_free1",
+      "freelancerName": "Nguyen Van A",
+      "freelancerRating": 4.8,
+      "coverLetter": "Tôi rất quan tâm dự án...",
+      "proposedBudget": 140.0,
+      "status": "PENDING"
+    }
+  ]
+}
+```
+
+---
+
+#### `POST /jobs/:jobId/applications/:applicationId/select`
+Client chọn một ứng viên (Luồng 3: Select). 
+API sẽ tự động cập nhật Job sang `DRAFT`, Application sang `ACCEPTED`, các ứng viên khác sang `REJECTED`, và tạo một Contract nháp.
+
+**Response 201:**
+```json
+{
+  "contractId": "ctr_new_id"
+}
+```
+
+---
+
 ## 4. Screen-to-API Mapping
 
 | Màn hình | Route FE | APIs cần gọi |
 |---|---|---|
 | Đăng nhập | `/login` | `POST /auth/login` |
 | Đăng ký | `/register` | `POST /auth/register` |
-| Dashboard (Freelancer) | `/dashboard` | `GET /contracts` (tính toán stats và lấy danh sách active contracts), `GET /milestones` (upcoming milestones), `GET /payments` (recent payments, total earned) |
-| Dashboard (Client) | `/dashboard/client` | `GET /contracts` (dự án của client), `GET /milestones/pending` (các milestone cần duyệt), `GET /escrow/summary` |
-| Chợ hợp đồng (Marketplace) | `/contracts` | `GET /contracts` (với các bộ lọc query: `search`, `category`, `budgetMin`, `budgetMax`, `sort`) |
+| Chợ Việc Làm (Jobs) | `/jobs` | `GET /jobs` |
+| Tạo Job mới | `/jobs/new` | `POST /jobs` |
+| Danh sách ứng viên | `/jobs/[id]/applicants` | `GET /jobs/:id`, `GET /jobs/:id/applications`, `POST /jobs/:jobId/applications/:applicationId/select` |
+| Dashboard (Freelancer) | `/dashboard` | `GET /contracts`, `GET /milestones`, `GET /payments` |
+| Dashboard (Client) | `/dashboard/client` | `GET /contracts`, `GET /jobs/my-jobs`, `GET /milestones/pending` |
+| Chợ hợp đồng (Marketplace) | `/contracts` | `GET /contracts` |
 | Tạo hợp đồng | `/contracts/new` | `POST /contracts` |
 | Chi tiết hợp đồng | `/contracts/[id]` | `GET /contracts/:id`, `GET /contracts/:id/messages`, `POST /contracts/:id/messages`, `GET /contracts/:id/payments` |
 | Tin nhắn tập trung | `/messages` | `GET /conversations`, `GET /contracts/:contractId/messages`, `POST /contracts/:contractId/messages` |
