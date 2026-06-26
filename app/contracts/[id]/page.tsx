@@ -26,7 +26,11 @@ import {
   Users,
   TrendingUp,
 } from "lucide-react";
+import { NavBar } from "@/components/shared/NavBar";
 import { SubmitMilestoneModal } from "@/components/milestones/SubmitMilestoneModal";
+import { EscrowStatusCard } from "@/components/web3/EscrowStatusCard";
+import { mockEscrowStatusByContractId } from "@/lib/mock-web3";
+import { EscrowStatus } from "@/types/web3";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -79,55 +83,6 @@ const INITIAL_MESSAGES: ChatMessage[] = [
 const NAVY = "#0B3C5D";
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
-
-function NavBar() {
-  return (
-    <nav
-      className="sticky top-0 z-30 flex items-center justify-between px-6 py-3 bg-white border-b border-gray-200 shadow-sm"
-      style={{ fontFamily: "Inter, sans-serif" }}
-    >
-      {/* Logo */}
-      <Link href="/" className="flex items-center gap-2 select-none">
-        <LogoIcon className="w-8 h-8" style={{ color: NAVY }} />
-        <span className="text-base font-bold" style={{ color: NAVY }}>
-          FreelancePact
-        </span>
-      </Link>
-
-      {/* Nav links */}
-      <div className="hidden md:flex items-center gap-8">
-        <Link
-          href="/contracts"
-          className="text-sm font-semibold border-b-2 pb-0.5"
-          style={{ color: NAVY, borderColor: NAVY }}
-        >
-          My Contracts
-        </Link>
-        <Link href="/profile" className="text-sm text-gray-500 hover:text-gray-800 transition-colors">
-          Profile
-        </Link>
-        <Link href="/chat" className="text-sm text-gray-500 hover:text-gray-800 transition-colors">
-          Chat
-        </Link>
-      </div>
-
-      {/* Right icons */}
-      <div className="flex items-center gap-4">
-        <button className="relative p-1.5 text-gray-500 hover:text-gray-800 transition-colors" aria-label="Notifications">
-          <Bell className="w-5 h-5" />
-          <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
-        </button>
-        <div
-          className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold cursor-pointer"
-          style={{ background: "linear-gradient(135deg, #7E57C2, #512DA8)" }}
-          aria-label="Profile"
-        >
-          JD
-        </div>
-      </div>
-    </nav>
-  );
-}
 
 function BreadcrumbBar() {
   return (
@@ -590,12 +545,17 @@ function PartnerCard() {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+const CONTRACT_ID = "CTR-2024-892";
+
 export default function ContractDetailsPage() {
   const [activeTab, setActiveTab] = useState<TabKey>("discussion");
+  const [escrowStatus, setEscrowStatus] = useState<EscrowStatus>(
+    mockEscrowStatusByContractId[CONTRACT_ID] ?? "PENDING_DEPOSIT"
+  );
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50" style={{ fontFamily: "Inter, system-ui, sans-serif" }}>
-      <NavBar />
+      <NavBar activePage="Contracts" />
       <BreadcrumbBar />
 
       {/* Contract header */}
@@ -622,6 +582,11 @@ export default function ContractDetailsPage() {
         {/* ── RIGHT 30% ── */}
         <aside className="w-80 flex-shrink-0 space-y-4 sticky top-[130px] self-start">
           <OverviewCard />
+          <EscrowStatusCard
+            escrowStatus={escrowStatus}
+            contractId={CONTRACT_ID}
+            onStatusChange={setEscrowStatus}
+          />
           <PartnerCard />
         </aside>
       </div>

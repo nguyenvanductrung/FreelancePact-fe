@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Bell, Briefcase, MessageSquare, User, AlertCircle, Search, Plus } from "lucide-react";
 import { LogoIcon } from "@/components/LogoIcon";
 import { NAVY } from "@/constants";
+import { WalletConnectButton } from "@/components/web3/WalletConnectButton";
 
 interface NavLink {
   href: string;
@@ -72,6 +73,7 @@ export function NavBar({ activePage, userInitials = "JD" }: NavBarProps) {
           <Plus className="w-4 h-4" />
           Post a Job
         </Link>
+        <WalletConnectButton />
         <button
           className="relative p-1.5 text-gray-500 hover:text-gray-800 transition-colors"
           aria-label="Notifications"

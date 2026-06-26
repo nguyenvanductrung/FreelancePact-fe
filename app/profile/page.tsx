@@ -26,6 +26,8 @@ import {
 } from "lucide-react";
 import { NavBar } from "@/components/shared/NavBar";
 import { Footer } from "@/components/shared/Footer";
+import { ReputationNFTGallery } from "@/components/profile/ReputationNFTGallery";
+import { mockReputationNFTs } from "@/lib/mock-web3";
 import { NAVY, BLUE } from "@/constants";
 import { authApi, profileApi } from "@/lib/api";
 import type { UserProfile } from "@/types";
@@ -604,6 +606,8 @@ export default function ProfilePage() {
                   <ExperienceCard experience={profile.experience} />
                   <PortfolioCard items={profile.portfolioItems} />
                 </div>
+                {/* TODO: filter by current freelancer ID once auth wiring is connected */}
+                <ReputationNFTGallery nfts={mockReputationNFTs} />
               </div>
             )}
             {activeTab === "contracts" && <ContractsTab />}
