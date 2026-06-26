@@ -51,6 +51,7 @@ import type {
   ContractSummary,
   ChatMessage,
   SendMessagePayload,
+  SubmitMilestonePayload,
   UserProfile,
   Payment,
   PaginatedResponse,
@@ -160,6 +161,43 @@ export const contractsApi = {
 
 // ─── Chat API ─────────────────────────────────────────────────────────────────
 
+// ─── Milestone API ─────────────────────────────────────────────────────────────────
+// export const milestonesApi = {
+//   submit: (milestoneId: string, payload: SubmitMilestonePayload) =>
+//     request<ApiResponse<ContractDetail>>(`/milestones/${milestoneId}/submit`, {
+//       method: "PATCH",
+//       headers: authHeaders(),
+//       body: JSON.stringify(payload),
+//     }),
+// };
+export const milestonesApi = {
+
+  submit: async (id: string, data: { proofOfWork: string }) => {
+    const response = await fetch(`/api/milestones/${id}/submit`, { // hoặc endpoint từ server core của bạn
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      throw new Error("Không thể nộp sản phẩm báo cáo");
+    }
+    return response.json();
+  },
+
+  //ham tu choi
+  reject: async (id: string, data: { reason: string }) => {
+    const response = await fetch(`/api/milestones/${id}/reject`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error("Không thể gửi yêu cầu chỉnh sửa");
+    return response.json();
+  }
+};
+
 export const chatApi = {
   /**
    * GET /contracts/:contractId/messages?page=&pageSize=
@@ -242,3 +280,6 @@ export const paymentsApi = {
       body: JSON.stringify({ milestoneId }),
     }),
 };
+
+
+

@@ -40,8 +40,16 @@ export interface Milestone {
   name: string;
   budget: number; // VND
   deadline: string; // ISO date string
-  status: "pending" | "active" | "completed";
+  status:
+    | "pending"
+    | "active"
+    | "submitted"
+    | "revision_requested"
+    | "completed";
   progressPercent: number;
+  submissionNote?: string;
+  submittedAt?: string;
+  files?: string[];
 }
 
 export interface ContractSummary {
@@ -74,6 +82,11 @@ export interface CreateContractPayload {
   paymentTerm: PaymentTerm;
   specialTerms?: string;
   milestones: Omit<Milestone, "id" | "status" | "progressPercent">[];
+}
+
+export interface SubmitMilestonePayload {
+  submissionNote: string;
+  fileUrls?: string[];
 }
 
 // ─── Chat / Discussion ────────────────────────────────────────────────────────

@@ -1,15 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, Briefcase, MessageSquare, User, AlertCircle } from "lucide-react";
+import { Bell, Briefcase, MessageSquare, User, AlertCircle, CheckSquare } from "lucide-react";
 import { LogoIcon } from "@/components/LogoIcon";
 import { NAVY } from "@/constants";
+import { useRouter } from 'next/navigation'; // Hoàn toàn chính xác
 
 interface NavLink {
   href: string;
   label: string;
   icon: React.ReactNode;
-  active?: boolean;
 }
 
 interface NavBarProps {
@@ -24,6 +24,7 @@ const DEFAULT_NAV_LINKS: NavLink[] = [
   { href: "/chat", label: "Chat", icon: <MessageSquare className="w-3.5 h-3.5" /> },
   { href: "/profile", label: "Profile", icon: <User className="w-3.5 h-3.5" /> },
   { href: "#", label: "Alerts", icon: <AlertCircle className="w-3.5 h-3.5" /> },
+  // { href: "/submit", label: "Submit", icon: <CheckSquare className="w-3.5 h-3.5" /> } 
 ];
 
 export function NavBar({ activePage, userInitials = "JD" }: NavBarProps) {
@@ -44,6 +45,23 @@ export function NavBar({ activePage, userInitials = "JD" }: NavBarProps) {
       <div className="hidden md:flex items-center gap-7">
         {DEFAULT_NAV_LINKS.map((item) => {
           const isActive = item.label === activePage;
+
+          // Xử lý riêng nút Submit để tạo kiểu Button hành động nổi bật
+          if (item.label === "Submit") {
+            return (
+              <Link
+                key={item.label}
+                href={item.href}
+                className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-bold text-white rounded-xl transition-all shadow-sm hover:opacity-90 active:scale-[0.98]"
+                style={{ backgroundColor: NAVY }}
+              >
+                {item.icon}
+                {item.label}
+              </Link>
+            );
+          }
+
+          // Các liên kết menu thông thường
           return (
             <Link
               key={item.label}

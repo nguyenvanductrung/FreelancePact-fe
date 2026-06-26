@@ -2,7 +2,13 @@
 
 import { useState, useRef, useEffect, FormEvent } from "react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { LogoIcon } from "@/components/LogoIcon";
+import { contractsApi, milestonesApi } from "@/lib/api";
+import type { Milestone } from "@/types";
+import SubmitMilestoneModal from "@/app/src/SubmitMilestoneModal/SubmitMilestoneModal";
+import RejectMilestoneModal from "@/app/src/RejectMilestoneModal/RejectMilestoneModal";
+
 import {
   ChevronLeft,
   Bell,
@@ -25,6 +31,9 @@ import {
   Wallet,
   Users,
   TrendingUp,
+  FileUp,
+  LinkIcon,
+  Loader2,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
