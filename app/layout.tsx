@@ -4,6 +4,8 @@ import "./globals.css";
 import GoogleAuthProvider from "@/components/providers/GoogleAuthProvider";
 import { WalletContextProvider } from "@/contexts/WalletContext";
 
+import { Auth0Provider } from "@/components/providers/Auth0Provider";
+
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
   variable: "--font-geist-sans",
@@ -31,11 +33,13 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} font-[family-name:var(--font-geist-sans)] antialiased`}
       >
-        <GoogleAuthProvider>
-          <WalletContextProvider>
-            {children}
-          </WalletContextProvider>
-        </GoogleAuthProvider>
+        <Auth0Provider>
+          <GoogleAuthProvider>
+            <WalletContextProvider>
+              {children}
+            </WalletContextProvider>
+          </GoogleAuthProvider>
+        </Auth0Provider>
       </body>
     </html>
   );

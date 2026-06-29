@@ -111,6 +111,16 @@ export const authApi = {
       method: "POST",
       body: JSON.stringify({ accessToken }),
     }),
+
+  /**
+   * POST /auth/auth0
+   * Body: { code } → Response: AuthTokens
+   */
+  auth0Login: (code: string) =>
+    request<ApiResponse<AuthTokens>>("/auth/auth0", {
+      method: "POST",
+      body: JSON.stringify({ code }),
+    }),
 };
 
 // ─── Contracts API ────────────────────────────────────────────────────────────
