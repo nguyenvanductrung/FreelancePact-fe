@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { NavBar } from "@/components/shared/NavBar";
 import { SubmitMilestoneModal } from "@/components/milestones/SubmitMilestoneModal";
+import { RejectMilestoneModal} from "@/components/milestones/RejectMilestoneModal";
 import { EscrowStatusCard } from "@/components/web3/EscrowStatusCard";
 import { mockEscrowStatusByContractId } from "@/lib/mock-web3";
 import { EscrowStatus } from "@/types/web3";
@@ -349,7 +350,8 @@ function DiscussionPanel() {
 
 function MilestonesTab() {
   const [submittingMilestone, setSubmittingMilestone] = useState<any>(null);
-
+  const [rejectingMilestone, setRejectingMilestone] = useState<any>(null);
+  
   const MOCK_MILESTONES = [
     { id: "m1", name: "Milestone 1 — Wireframes & Research", status: "completed", pct: 100, budget: 75000000, deadline: "2024-10-30T00:00:00Z" },
     { id: "m2", name: "Milestone 2 — UI Design System", status: "active", pct: 40, budget: 75000000, deadline: "2024-11-15T00:00:00Z" },
@@ -388,7 +390,13 @@ function MilestonesTab() {
             </div>
           </div>
           {m.status === "active" && (
-            <div className="mt-4 pt-3 border-t border-gray-100 text-right">
+            <div className="mt-4 pt-3 border-t border-gray-100 flex justify-end text-right gap-4">
+              <button
+                onClick={() => setRejectingMilestone(m)}
+                className="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+              >
+                Reject Milestone
+              </button>
               <button
                 onClick={() => setSubmittingMilestone(m)}
                 className="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors hover:opacity-90"
@@ -408,6 +416,15 @@ function MilestonesTab() {
           onSuccess={(id) => {
             console.log("Milestone submitted:", id);
             // Refresh list here
+          }}
+        />
+      )}
+      {rejectingMilestone && (
+        <RejectMilestoneModal
+          milestone={rejectingMilestone}
+          onClose={() => setRejectingMilestone(null)}
+          onSuccess={(id) => {
+            console.log("Milestone rejected:", id);
           }}
         />
       )}
@@ -456,12 +473,12 @@ function OverviewCard() {
         <div>
           <div className="flex justify-between text-xs text-gray-500 mb-1.5">
             <span className="font-medium">Tiến độ chung</span>
-            <span className="font-bold text-gray-700">25%</span>
+            <span className="font-bold text-gray-700">55%</span>
           </div>
           <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
             <div
               className="h-full rounded-full"
-              style={{ width: "25%", backgroundColor: NAVY }}
+              style={{ width: "55%", backgroundColor: NAVY }}
             />
           </div>
         </div>
