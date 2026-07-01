@@ -16,6 +16,7 @@ export interface AuthUser {
   fullName: string;
   avatarUrl?: string;
   role: "freelancer" | "client";
+  walletAddress?: string;
   isKycVerified: boolean;
 }
 
@@ -112,6 +113,8 @@ export interface UserProfile {
   title: string;
   location: string;
   bio: string;
+  role?: "freelancer" | "client";
+  walletAddress?: string;
   hourlyRate?: number; // USD
   availabilityHoursPerWeek?: number;
   skills: string[];

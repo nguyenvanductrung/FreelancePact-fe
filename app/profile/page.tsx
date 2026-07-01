@@ -138,6 +138,11 @@ function ProfileSidebar({ profile }: { profile: UserProfile }) {
           <div className="flex items-center gap-1 mt-1.5 text-xs text-gray-500">
             <MapPin className="w-3 h-3" /> {profile.location || "N/A"}
           </div>
+          {profile.walletAddress && (
+            <div className="flex items-center gap-1 mt-2 text-xs font-medium text-gray-600 bg-gray-100 px-2.5 py-1 rounded-full border border-gray-200">
+               <span className="text-gray-400 font-bold">ADA</span> {profile.walletAddress.slice(0, 10)}...{profile.walletAddress.slice(-8)}
+            </div>
+          )}
         </div>
 
         {/* Stats */}
@@ -393,7 +398,8 @@ function SettingsTab({
     bio: profile.bio || "",
     hourlyRate: profile.hourlyRate || 0,
     availabilityHoursPerWeek: profile.availabilityHoursPerWeek || 0,
-    skills: profile.skills ? profile.skills.join(", ") : ""
+    skills: profile.skills ? profile.skills.join(", ") : "",
+    walletAddress: profile.walletAddress || ""
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -405,7 +411,8 @@ function SettingsTab({
       bio: profile.bio || "",
       hourlyRate: profile.hourlyRate || 0,
       availabilityHoursPerWeek: profile.availabilityHoursPerWeek || 0,
-      skills: profile.skills ? profile.skills.join(", ") : ""
+      skills: profile.skills ? profile.skills.join(", ") : "",
+      walletAddress: profile.walletAddress || ""
     });
   }, [profile]);
 
@@ -419,7 +426,8 @@ function SettingsTab({
       bio: formData.bio,
       hourlyRate: Number(formData.hourlyRate),
       availabilityHoursPerWeek: Number(formData.availabilityHoursPerWeek),
-      skills: formData.skills.split(",").map(s => s.trim()).filter(Boolean)
+      skills: formData.skills.split(",").map(s => s.trim()).filter(Boolean),
+      walletAddress: formData.walletAddress
     };
     try {
       await onUpdate(payload);
@@ -502,6 +510,17 @@ function SettingsTab({
           value={formData.skills} 
           onChange={e => setFormData({...formData, skills: e.target.value})}
           className="w-full border rounded-lg px-3 py-2 text-sm" 
+        />
+      </div>
+
+      <div>
+        <label className="text-xs font-bold text-gray-600 block mb-1">Địa chỉ ví Cardano (Tùy chọn)</label>
+        <input 
+          type="text" 
+          value={formData.walletAddress} 
+          onChange={e => setFormData({...formData, walletAddress: e.target.value})}
+          className="w-full border rounded-lg px-3 py-2 text-sm" 
+          placeholder="addr1..."
         />
       </div>
 

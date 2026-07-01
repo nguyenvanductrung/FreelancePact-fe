@@ -111,6 +111,16 @@ export const authApi = {
       method: "POST",
       body: JSON.stringify({ accessToken }),
     }),
+
+  /**
+   * POST /auth/auth0
+   * Body: { code } → Response: AuthTokens
+   */
+  auth0Login: (code: string) =>
+    request<ApiResponse<AuthTokens>>("/auth/auth0", {
+      method: "POST",
+      body: JSON.stringify({ code }),
+    }),
 };
 
 // ─── Contracts API ────────────────────────────────────────────────────────────
@@ -215,6 +225,17 @@ export const profileApi = {
   get: (userId: string) =>
     request<ApiResponse<UserProfile>>(`/users/${userId}/profile`, {
       headers: authHeaders(),
+    }),
+
+  /**
+   * PATCH /users/me/role
+   * Switch user role
+   */
+  switchRole: (role: "freelancer" | "client") =>
+    request<ApiResponse<UserProfile>>("/users/me/role", {
+      method: "PATCH",
+      headers: authHeaders(),
+      body: JSON.stringify({ role }),
     }),
 
   /**

@@ -4,6 +4,7 @@ import { useState, FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useGoogleLogin } from "@react-oauth/google";
+import { useAuth0 } from "@auth0/auth0-react";
 import { authApi } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,6 +60,18 @@ function LinkedInIcon() {
   );
 }
 
+function Auth0Icon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20">
+      <path d="M21.98 7.448L19.62 0H4.347L2.02 7.448c-1.352 4.312.026 9.206 3.635 12.015L12 24l6.345-4.537c3.609-2.809 4.987-7.703 3.635-12.015z" fill="#EB5424" />
+      <path d="M12 24l6.345-4.537c3.609-2.809 4.987-7.703 3.635-12.015L19.62 0H12v24z" fill="#D33722" />
+      <path d="M21.98 7.448L19.62 0H12v7.448h9.98z" fill="#E64323" />
+      <path d="M12 7.448H2.02c-1.352 4.312.026 9.206 3.635 12.015L12 24V7.448z" fill="#FB7C3F" />
+      <path d="M12 0H4.347L2.02 7.448H12V0z" fill="#F45728" />
+    </svg>
+  );
+}
+
 import { LogoIcon } from "@/components/LogoIcon";
 
 // ─── Main Page ───────────────────────────────────────────────────────────────
@@ -70,6 +83,8 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+  const { loginWithRedirect } = useAuth0();
 
   const loginWithGoogle = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
@@ -217,6 +232,17 @@ export default function LoginPage() {
               >
                 <LinkedInIcon />
                 Continue with LinkedIn
+              </Button>
+              <Button
+                id="btn-auth0"
+                type="button"
+                variant="outline"
+                className="w-full h-11 text-sm font-medium gap-3 border-gray-300 hover:bg-gray-50 transition-colors"
+                onClick={() => loginWithRedirect()}
+                disabled={isLoading}
+              >
+                <Auth0Icon />
+                Continue with Auth0
               </Button>
             </div>
 
