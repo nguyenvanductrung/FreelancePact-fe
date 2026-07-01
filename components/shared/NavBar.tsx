@@ -5,6 +5,7 @@ import { Bell, Briefcase, MessageSquare, User, AlertCircle, Search, Plus } from 
 import { LogoIcon } from "@/components/LogoIcon";
 import { NAVY } from "@/constants";
 import { WalletConnectButton } from "@/components/web3/WalletConnectButton";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface NavLink {
   href: string;
@@ -50,11 +51,10 @@ export function NavBar({ activePage, userInitials = "JD" }: NavBarProps) {
             <Link
               key={item.label}
               href={item.href}
-              className={`flex items-center gap-1.5 text-sm font-medium transition-colors pb-0.5 ${
-                isActive
+              className={`flex items-center gap-1.5 text-sm font-medium transition-colors pb-0.5 ${isActive
                   ? "border-b-2 font-semibold"
                   : "text-gray-500 hover:text-gray-800"
-              }`}
+                }`}
               style={isActive ? { color: NAVY, borderColor: NAVY } : undefined}
             >
               {item.icon}
@@ -66,7 +66,7 @@ export function NavBar({ activePage, userInitials = "JD" }: NavBarProps) {
 
       {/* Right: bell + avatar */}
       <div className="flex items-center gap-4 md:gap-5">
-        <Link 
+        <Link
           href="/jobs/new"
           className="hidden md:flex items-center gap-1.5 px-4 py-2 bg-[#4F6AF5] text-white text-sm font-semibold rounded-full hover:bg-[#3d55d9] transition-all shadow-sm hover:shadow active:scale-95"
         >
@@ -81,13 +81,53 @@ export function NavBar({ activePage, userInitials = "JD" }: NavBarProps) {
           <Bell className="w-5 h-5" />
           <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
         </button>
-        <div
-          className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold cursor-pointer"
-          style={{ background: "linear-gradient(135deg, #7E57C2, #512DA8)" }}
-          aria-label="Profile menu"
-        >
-          {userInitials}
-        </div>
+        <Popover>
+          <PopoverTrigger
+            className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold cursor-pointer"
+            style={{ background: "linear-gradient(135deg, #7E57C2, #512DA8)" }}
+            aria-label="Profile menu"
+          >
+            {userInitials}
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-56 p-2">
+            <div className="flex flex-col gap-1">
+              <Link
+                href="/profile"
+                className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+              >
+                Hồ sơ cá nhân
+              </Link>
+              <button
+                className="w-full text-left px-3 py-2 text-sm text-blue-600 font-semibold hover:bg-blue-50 rounded-md transition-colors"
+                onClick={async () => {
+                  try {
+                    const { profileApi } = await import("@/lib/api");
+                    await profileApi.switchRole("client"); // or dynamically based on current
+                    window.location.href = "/dashboard/client";
+                  } catch (e) {
+                    console.error(e);
+                  }
+                }}
+              >
+                Chuyển sang Client
+              </button>
+              <button
+                className="w-full text-left px-3 py-2 text-sm text-emerald-600 font-semibold hover:bg-emerald-50 rounded-md transition-colors"
+                onClick={async () => {
+                  try {
+                    const { profileApi } = await import("@/lib/api");
+                    await profileApi.switchRole("freelancer");
+                    window.location.href = "/dashboard";
+                  } catch (e) {
+                    console.error(e);
+                  }
+                }}
+              >
+                Chuyển sang Freelancer
+              </button>
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
     </nav>
   );

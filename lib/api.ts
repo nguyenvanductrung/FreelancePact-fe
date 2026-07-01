@@ -228,6 +228,17 @@ export const profileApi = {
     }),
 
   /**
+   * PATCH /users/me/role
+   * Switch user role
+   */
+  switchRole: (role: "freelancer" | "client") =>
+    request<ApiResponse<UserProfile>>("/users/me/role", {
+      method: "PATCH",
+      headers: authHeaders(),
+      body: JSON.stringify({ role }),
+    }),
+
+  /**
    * PATCH /users/me/profile
    * Header: Bearer token
    * Body: Partial<UserProfile>

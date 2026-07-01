@@ -4,6 +4,7 @@ import { useState, FormEvent, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useGoogleLogin } from "@react-oauth/google";
+import { useAuth0 } from "@auth0/auth0-react";
 import { authApi } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,11 +61,24 @@ function LinkedInIcon() {
   );
 }
 
+function Auth0Icon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20">
+      <path d="M21.98 7.448L19.62 0H4.347L2.02 7.448c-1.352 4.312.026 9.206 3.635 12.015L12 24l6.345-4.537c3.609-2.809 4.987-7.703 3.635-12.015z" fill="#EB5424" />
+      <path d="M12 24l6.345-4.537c3.609-2.809 4.987-7.703 3.635-12.015L19.62 0H12v24z" fill="#D33722" />
+      <path d="M21.98 7.448L19.62 0H12v7.448h9.98z" fill="#E64323" />
+      <path d="M12 7.448H2.02c-1.352 4.312.026 9.206 3.635 12.015L12 24V7.448z" fill="#FB7C3F" />
+      <path d="M12 0H4.347L2.02 7.448H12V0z" fill="#F45728" />
+    </svg>
+  );
+}
+
 // ─── Register Form Component ────────────────────────────────────────────────
 
 function RegisterForm() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { loginWithRedirect } = useAuth0();
   const defaultRole = searchParams.get("role");
 
   const [role, setRole] = useState<"freelancer" | "client">(
@@ -73,6 +87,7 @@ function RegisterForm() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [walletAddress, setWalletAddress] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -109,7 +124,7 @@ function RegisterForm() {
       const res = await fetch("http://localhost:3001/api/v1/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fullName, email, password, role }),
+        body: JSON.stringify({ fullName, email, password, role, walletAddress }),
       });
 
       const data = await res.json();
@@ -174,6 +189,16 @@ function RegisterForm() {
             >
               <LinkedInIcon />
               Đăng ký với LinkedIn
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full h-11 text-sm font-medium gap-3 border-gray-300 hover:bg-gray-50 text-gray-700"
+              onClick={() => loginWithRedirect()}
+              disabled={isLoading}
+            >
+              <Auth0Icon />
+              Đăng ký với Auth0
             </Button>
           </div>
 
@@ -273,6 +298,21 @@ function RegisterForm() {
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
+            </div>
+
+            {/* Wallet Address */}
+            <div className="space-y-1.5">
+              <label htmlFor="walletAddress" className="text-sm font-medium text-gray-700">
+                Địa chỉ ví Cardano (Tùy chọn)
+              </label>
+              <Input
+                id="walletAddress"
+                type="text"
+                placeholder="addr1..."
+                value={walletAddress}
+                onChange={(e) => setWalletAddress(e.target.value)}
+                className="h-11 border-gray-300 focus-visible:ring-[#1E3A5F]/40 focus-visible:border-[#1E3A5F]"
+              />
             </div>
 
             {/* Checkbox Terms */}
