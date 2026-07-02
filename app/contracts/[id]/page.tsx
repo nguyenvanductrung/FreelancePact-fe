@@ -2,6 +2,9 @@
 
 import { useState, useRef, useEffect, FormEvent } from "react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
+import { contractsApi } from "@/lib/api";
+import { ContractDetail } from "@/types";
 import { LogoIcon } from "@/components/LogoIcon";
 import {
   ChevronLeft,
@@ -85,7 +88,7 @@ const NAVY = "#0B3C5D";
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function BreadcrumbBar() {
+function BreadcrumbBar({ contractId }: { contractId: string }) {
   return (
     <div className="flex items-center justify-between px-6 py-3 bg-gray-50 border-b border-gray-200">
       <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -94,7 +97,7 @@ function BreadcrumbBar() {
           <span>Quay lại Danh sách</span>
         </Link>
         <span className="text-gray-300">/</span>
-        <span className="text-gray-700 font-medium">Chi tiết Hợp đồng #CTR-2024-892</span>
+        <span className="text-gray-700 font-medium">Chi tiết Hợp đồng #{contractId}</span>
       </div>
       <div className="flex items-center gap-2">
         <button className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors">
@@ -113,23 +116,23 @@ function BreadcrumbBar() {
   );
 }
 
-function ContractHeader() {
+function ContractHeader({ contract }: { contract: ContractDetail }) {
   return (
     <div className="px-6 pt-6 pb-4 bg-white">
       <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight leading-tight">
-        Thiết kế lại Ứng dụng Di động FinTech
+        {contract.title}
       </h1>
       <div className="flex items-center gap-3 mt-2">
         <span
           className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-white rounded-full"
-          style={{ backgroundColor: "#1565C0" }}
+          style={{ backgroundColor: contract.status === "active" ? "#1565C0" : "#6B7280" }}
         >
-          <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
-          Đang thực hiện
+          {contract.status === "active" && <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />}
+          {contract.status.toUpperCase()}
         </span>
         <span className="flex items-center gap-1 text-sm text-gray-500">
           <Calendar className="w-3.5 h-3.5" />
-          Bắt đầu: 10 Thg 10, 2024
+          Bắt đầu: {new Date(contract.startDate).toLocaleDateString("vi-VN")}
         </span>
       </div>
     </div>
@@ -348,20 +351,15 @@ function DiscussionPanel() {
 
 // ── Milestones tab placeholder ────────────────────────────────────────────────
 
-function MilestonesTab() {
+function MilestonesTab({ contract }: { contract: ContractDetail }) {
   const [submittingMilestone, setSubmittingMilestone] = useState<any>(null);
   const [rejectingMilestone, setRejectingMilestone] = useState<any>(null);
   
-  const MOCK_MILESTONES = [
-    { id: "m1", name: "Milestone 1 — Wireframes & Research", status: "completed", pct: 100, budget: 75000000, deadline: "2024-10-30T00:00:00Z" },
-    { id: "m2", name: "Milestone 2 — UI Design System", status: "active", pct: 40, budget: 75000000, deadline: "2024-11-15T00:00:00Z" },
-    { id: "m3", name: "Milestone 3 — Prototype & Testing", status: "pending", pct: 0, budget: 75000000, deadline: "2024-11-30T00:00:00Z" },
-    { id: "m4", name: "Milestone 4 — Final Delivery", status: "pending", pct: 0, budget: 75000000, deadline: "2024-12-15T00:00:00Z" },
-  ];
+  const milestones = contract.milestones || [];
 
   return (
     <div className="flex flex-col gap-3">
-      {MOCK_MILESTONES.map((m) => (
+      {milestones.map((m) => (
         <div key={m.id} className="bg-white border border-gray-200 rounded-xl p-4">
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2">
@@ -383,7 +381,7 @@ function MilestonesTab() {
               <div
                 className="h-full rounded-full transition-all"
                 style={{
-                  width: `${m.pct}%`,
+                  width: `${m.progressPercent}%`,
                   backgroundColor: m.status === "completed" ? "#10B981" : NAVY,
                 }}
               />
@@ -443,7 +441,7 @@ function PaymentsTab() {
 
 // ── Right Sidebar ─────────────────────────────────────────────────────────────
 
-function OverviewCard() {
+function OverviewCard({ contract }: { contract: ContractDetail }) {
   return (
     <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
       {/* Card header */}
@@ -457,14 +455,16 @@ function OverviewCard() {
         <div className="flex items-start justify-between">
           <div>
             <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Tổng giá trị</p>
-            <p className="text-2xl font-extrabold text-gray-900 mt-0.5">$12,500.00</p>
+            <p className="text-2xl font-extrabold text-gray-900 mt-0.5">
+              {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(contract.totalValue)}
+            </p>
           </div>
           <div className="text-right">
             <p className="text-xs text-gray-400 font-medium uppercase tracking-wide flex items-center gap-1 justify-end">
               <Wallet className="w-3 h-3" /> Đã Escrow
             </p>
             <p className="text-lg font-bold mt-0.5" style={{ color: "#1565C0" }}>
-              $3,125.00
+              {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(contract.escrowedAmount || 0)}
             </p>
           </div>
         </div>
@@ -473,12 +473,12 @@ function OverviewCard() {
         <div>
           <div className="flex justify-between text-xs text-gray-500 mb-1.5">
             <span className="font-medium">Tiến độ chung</span>
-            <span className="font-bold text-gray-700">55%</span>
+            <span className="font-bold text-gray-700">{contract.progressPercent}%</span>
           </div>
           <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
             <div
               className="h-full rounded-full"
-              style={{ width: "55%", backgroundColor: NAVY }}
+              style={{ width: `${contract.progressPercent}%`, backgroundColor: NAVY }}
             />
           </div>
         </div>
@@ -487,8 +487,8 @@ function OverviewCard() {
         <div className="flex items-start gap-3 bg-amber-50 border border-amber-100 rounded-xl p-3">
           <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-xs font-bold text-amber-800">Deadline Milestone 1</p>
-            <p className="text-xs text-amber-600 mt-0.5">30 Thg 10, 2024 (Còn 6 ngày)</p>
+            <p className="text-xs font-bold text-amber-800">Deadline Hợp đồng</p>
+            <p className="text-xs text-amber-600 mt-0.5">{new Date(contract.endDate).toLocaleDateString("vi-VN")}</p>
           </div>
         </div>
       </div>
@@ -562,21 +562,40 @@ function PartnerCard() {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-const CONTRACT_ID = "CTR-2024-892";
-
 export default function ContractDetailsPage() {
+  const params = useParams();
+  const contractId = params?.id as string;
+
+  const [contract, setContract] = useState<ContractDetail | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (contractId) {
+      contractsApi.get(contractId).then(res => {
+        setContract(res.data);
+      }).catch(err => {
+        console.error(err);
+      }).finally(() => {
+        setIsLoading(false);
+      });
+    }
+  }, [contractId]);
+
   const [activeTab, setActiveTab] = useState<TabKey>("discussion");
   const [escrowStatus, setEscrowStatus] = useState<EscrowStatus>(
-    mockEscrowStatusByContractId[CONTRACT_ID] ?? "PENDING_DEPOSIT"
+    mockEscrowStatusByContractId[contractId] ?? "PENDING_DEPOSIT"
   );
+
+  if (isLoading) return <div className="min-h-screen flex items-center justify-center bg-gray-50 text-gray-500">Đang tải...</div>;
+  if (!contract) return <div className="min-h-screen flex items-center justify-center bg-gray-50 text-red-500">Không tìm thấy hợp đồng.</div>;
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50" style={{ fontFamily: "Inter, system-ui, sans-serif" }}>
       <NavBar activePage="Contracts" />
-      <BreadcrumbBar />
+      <BreadcrumbBar contractId={contractId} />
 
       {/* Contract header */}
-      <ContractHeader />
+      <ContractHeader contract={contract} />
 
       {/* Tabs */}
       <TabBar active={activeTab} onChange={setActiveTab} />
@@ -592,16 +611,16 @@ export default function ContractDetailsPage() {
               <DiscussionPanel />
             </div>
           )}
-          {activeTab === "milestones" && <MilestonesTab />}
+          {activeTab === "milestones" && <MilestonesTab contract={contract} />}
           {activeTab === "payments" && <PaymentsTab />}
         </div>
 
         {/* ── RIGHT 30% ── */}
         <aside className="w-80 flex-shrink-0 space-y-4 sticky top-[130px] self-start">
-          <OverviewCard />
+          <OverviewCard contract={contract} />
           <EscrowStatusCard
             escrowStatus={escrowStatus}
-            contractId={CONTRACT_ID}
+            contractId={contractId}
             onStatusChange={setEscrowStatus}
           />
           <PartnerCard />
