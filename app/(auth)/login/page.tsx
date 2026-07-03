@@ -4,7 +4,6 @@ import { useState, FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useGoogleLogin } from "@react-oauth/google";
-import { useAuth0 } from "@auth0/auth0-react";
 import { authApi } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,36 +41,6 @@ function GoogleIcon() {
   );
 }
 
-function LinkedInIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      width="20"
-      height="20"
-      aria-hidden="true"
-    >
-      <rect width="24" height="24" rx="4" fill="#0A66C2" />
-      <path
-        d="M7.75 9.5H5.25v9h2.5v-9zM6.5 8.5a1.25 1.25 0 1 0 0-2.5 1.25 1.25 0 0 0 0 2.5zM18.75 18.5h-2.5v-4.25c0-1.014-.363-1.625-1.25-1.625-.875 0-1.25.611-1.25 1.625V18.5h-2.5v-9h2.5v1.2c.375-.688 1.1-1.45 2.375-1.45 1.763 0 2.625 1.163 2.625 3.438V18.5z"
-        fill="#fff"
-      />
-    </svg>
-  );
-}
-
-function Auth0Icon() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20">
-      <path d="M21.98 7.448L19.62 0H4.347L2.02 7.448c-1.352 4.312.026 9.206 3.635 12.015L12 24l6.345-4.537c3.609-2.809 4.987-7.703 3.635-12.015z" fill="#EB5424" />
-      <path d="M12 24l6.345-4.537c3.609-2.809 4.987-7.703 3.635-12.015L19.62 0H12v24z" fill="#D33722" />
-      <path d="M21.98 7.448L19.62 0H12v7.448h9.98z" fill="#E64323" />
-      <path d="M12 7.448H2.02c-1.352 4.312.026 9.206 3.635 12.015L12 24V7.448z" fill="#FB7C3F" />
-      <path d="M12 0H4.347L2.02 7.448H12V0z" fill="#F45728" />
-    </svg>
-  );
-}
-
 import { LogoIcon } from "@/components/LogoIcon";
 
 // ─── Main Page ───────────────────────────────────────────────────────────────
@@ -83,8 +52,6 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-
-  const { loginWithRedirect } = useAuth0();
 
   const loginWithGoogle = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
@@ -222,27 +189,6 @@ export default function LoginPage() {
               >
                 <GoogleIcon />
                 Continue with Google
-              </Button>
-              <Button
-                id="btn-linkedin"
-                type="button"
-                variant="outline"
-                className="w-full h-11 text-sm font-medium gap-3 border-gray-300 hover:bg-gray-50 transition-colors"
-                onClick={() => console.log("LinkedIn OAuth clicked")}
-              >
-                <LinkedInIcon />
-                Continue with LinkedIn
-              </Button>
-              <Button
-                id="btn-auth0"
-                type="button"
-                variant="outline"
-                className="w-full h-11 text-sm font-medium gap-3 border-gray-300 hover:bg-gray-50 transition-colors"
-                onClick={() => loginWithRedirect()}
-                disabled={isLoading}
-              >
-                <Auth0Icon />
-                Continue with Auth0
               </Button>
             </div>
 
