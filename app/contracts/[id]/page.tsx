@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { contractsApi } from "@/lib/api";
 import { ContractDetail } from "@/types";
+import { toast } from "sonner";
 import { LogoIcon } from "@/components/LogoIcon";
 import {
   ChevronLeft,
@@ -88,7 +89,17 @@ const NAVY = "#0B3C5D";
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function BreadcrumbBar({ contractId }: { contractId: string }) {
+function BreadcrumbBar({ 
+  contractId, 
+  contract, 
+  onSign, 
+  isSigning 
+}: { 
+  contractId: string; 
+  contract?: ContractDetail; 
+  onSign?: () => void; 
+  isSigning?: boolean;
+}) {
   return (
     <div className="flex items-center justify-between px-6 py-3 bg-gray-50 border-b border-gray-200">
       <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -104,13 +115,23 @@ function BreadcrumbBar({ contractId }: { contractId: string }) {
           <MoreHorizontal className="w-4 h-4" />
           Tùy chọn
         </button>
-        <button
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-white rounded-md transition-colors hover:opacity-90"
-          style={{ backgroundColor: NAVY }}
-        >
-          <CheckCircle2 className="w-4 h-4" />
-          Ký duyệt Thanh toán
-        </button>
+        {contract && (contract.status === "draft" || contract.status === "pending_signature") && (
+          <button
+            onClick={onSign}
+            disabled={isSigning}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-white rounded-md transition-colors ${
+              isSigning ? "opacity-70 cursor-not-allowed" : "hover:opacity-90"
+            }`}
+            style={{ backgroundColor: NAVY }}
+          >
+            {isSigning ? (
+              <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <CheckCircle2 className="w-4 h-4" />
+            )}
+            {isSigning ? "Đang xử lý..." : "Ký duyệt hợp đồng"}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -568,6 +589,11 @@ export default function ContractDetailsPage() {
 
   const [contract, setContract] = useState<ContractDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSigning, setIsSigning] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabKey>("discussion");
+  const [escrowStatus, setEscrowStatus] = useState<EscrowStatus>(
+    mockEscrowStatusByContractId[contractId] ?? "PENDING_DEPOSIT"
+  );
 
   useEffect(() => {
     if (contractId) {
@@ -581,10 +607,21 @@ export default function ContractDetailsPage() {
     }
   }, [contractId]);
 
-  const [activeTab, setActiveTab] = useState<TabKey>("discussion");
-  const [escrowStatus, setEscrowStatus] = useState<EscrowStatus>(
-    mockEscrowStatusByContractId[contractId] ?? "PENDING_DEPOSIT"
-  );
+  const handleSignContract = async () => {
+    if (!contractId) return;
+    try {
+      setIsSigning(true);
+      const res = await contractsApi.sign(contractId);
+      setContract(res.data);
+      setEscrowStatus("PENDING_DEPOSIT");
+      toast.success("Ký duyệt hợp đồng thành công!");
+    } catch (error) {
+      console.error("Failed to sign contract:", error);
+      toast.error("Có lỗi xảy ra khi ký hợp đồng. Vui lòng thử lại sau.");
+    } finally {
+      setIsSigning(false);
+    }
+  };
 
   if (isLoading) return <div className="min-h-screen flex items-center justify-center bg-gray-50 text-gray-500">Đang tải...</div>;
   if (!contract) return <div className="min-h-screen flex items-center justify-center bg-gray-50 text-red-500">Không tìm thấy hợp đồng.</div>;
@@ -592,7 +629,12 @@ export default function ContractDetailsPage() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50" style={{ fontFamily: "Inter, system-ui, sans-serif" }}>
       <NavBar activePage="Contracts" />
-      <BreadcrumbBar contractId={contractId} />
+      <BreadcrumbBar 
+        contractId={contractId} 
+        contract={contract}
+        onSign={handleSignContract}
+        isSigning={isSigning}
+      />
 
       {/* Contract header */}
       <ContractHeader contract={contract} />
