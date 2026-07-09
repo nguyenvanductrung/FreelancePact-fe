@@ -60,6 +60,8 @@ import type {
   CreateJobPayload,
   ApplyPayload,
   JobFilters,
+  SubmitMilestonePayload,
+  RejectMilestonePayload,
 } from "@/types";
 
 export const authApi = {
@@ -111,26 +113,37 @@ export const authApi = {
       method: "POST",
       body: JSON.stringify({ accessToken }),
     }),
+
+  /**
+   * POST /auth/auth0
+   * Body: { code } → Response: AuthTokens
+   */
+  auth0Login: (code: string) =>
+    request<ApiResponse<AuthTokens>>("/auth/auth0", {
+      method: "POST",
+      body: JSON.stringify({ code }),
+    }),
 };
 
 // ─── Contracts API ────────────────────────────────────────────────────────────
 
 export const contractsApi = {
   /**
-   * GET /contracts?page=&pageSize=
+   * GET /contracts
    * Header: Bearer token
-   * Response: PaginatedResponse<ContractSummary>
+  /**
+   * GET /contracts
+   * Header: Bearer token
+   * Response: ContractDetail[]
    */
-  list: (page = 1, pageSize = 10) =>
-    request<PaginatedResponse<ContractSummary>>(
-      `/contracts?page=${page}&pageSize=${pageSize}`,
-      { headers: authHeaders() }
-    ),
+  list: () =>
+    request<ApiResponse<ContractDetail[]>>("/contracts", {
+      headers: authHeaders(),
+    }),
 
   /**
    * GET /contracts/:id
-   * Header: Bearer token
-   * Response: ApiResponse<ContractDetail>
+   * Header: Bearer token → Response: ContractDetail
    */
   get: (id: string) =>
     request<ApiResponse<ContractDetail>>(`/contracts/${id}`, {
@@ -141,7 +154,7 @@ export const contractsApi = {
    * POST /contracts
    * Header: Bearer token
    * Body: CreateContractPayload
-   * Response: ApiResponse<ContractDetail>
+   * Response: ContractDetail
    */
   create: (payload: CreateContractPayload) =>
     request<ApiResponse<ContractDetail>>("/contracts", {
@@ -151,26 +164,25 @@ export const contractsApi = {
     }),
 
   /**
-   * POST /contracts/:id/sign
+   * POST /contracts/:id/fund  (Mock Deposit ADA)
    * Header: Bearer token
-   * Response: ApiResponse<ContractDetail>
+   * Response: ContractDetail (updated, status → ACTIVE)
+   */
+  fund: (id: string) =>
+    request<ApiResponse<ContractDetail>>(`/contracts/${id}/fund`, {
+      method: "POST",
+      headers: authHeaders(),
+    }),
+
+  /**
+   * POST /contracts/:id/sign  (kept for backward compat)
+   * Header: Bearer token
    */
   sign: (id: string) =>
     request<ApiResponse<ContractDetail>>(`/contracts/${id}/sign`, {
       method: "POST",
       headers: authHeaders(),
     }),
-
-  /**
-   * PATCH /contracts/:id/milestones/:milestoneId/complete
-   * Header: Bearer token
-   * Response: ApiResponse<ContractDetail>
-   */
-  completeMilestone: (contractId: string, milestoneId: string) =>
-    request<ApiResponse<ContractDetail>>(
-      `/contracts/${contractId}/milestones/${milestoneId}/complete`,
-      { method: "PATCH", headers: authHeaders() }
-    ),
 };
 
 // ─── Chat API ─────────────────────────────────────────────────────────────────
@@ -218,6 +230,17 @@ export const profileApi = {
     }),
 
   /**
+   * PATCH /users/me/role
+   * Switch user role
+   */
+  switchRole: (role: "freelancer" | "client") =>
+    request<ApiResponse<UserProfile>>("/users/me/role", {
+      method: "PATCH",
+      headers: authHeaders(),
+      body: JSON.stringify({ role }),
+    }),
+
+  /**
    * PATCH /users/me/profile
    * Header: Bearer token
    * Body: Partial<UserProfile>
@@ -237,24 +260,47 @@ export const paymentsApi = {
   /**
    * GET /contracts/:contractId/payments
    * Header: Bearer token
-   * Response: ApiResponse<Payment[]>
+   * Response: Payment[]
    */
   list: (contractId: string) =>
-    request<ApiResponse<Payment[]>>(`/contracts/${contractId}/payments`, {
+    request<Payment[]>(`/contracts/${contractId}/payments`, {
+      headers: authHeaders(),
+    }),
+};
+
+// ─── Milestones API ────────────────────────────────────────────────────────────
+
+export const milestonesApi = {
+  /**
+   * PATCH /milestones/:id/submit
+   * Freelancer nộp sản phẩm cho milestone
+   */
+  submit: (milestoneId: string, payload: SubmitMilestonePayload) =>
+    request<ContractDetail>(`/milestones/${milestoneId}/submit`, {
+      method: "PATCH",
+      headers: authHeaders(),
+      body: JSON.stringify(payload),
+    }),
+
+  /**
+   * PATCH /milestones/:id/approve
+   * Client nghiệm thu + giải ngân ADA cho milestone
+   */
+  approve: (milestoneId: string) =>
+    request<ContractDetail>(`/milestones/${milestoneId}/approve`, {
+      method: "PATCH",
       headers: authHeaders(),
     }),
 
   /**
-   * POST /contracts/:contractId/payments/release
-   * Header: Bearer token
-   * Body: { milestoneId: string }
-   * Response: ApiResponse<Payment>
+   * PATCH /milestones/:id/reject
+   * Client từ chối, yêu cầu sửa
    */
-  release: (contractId: string, milestoneId: string) =>
-    request<ApiResponse<Payment>>(`/contracts/${contractId}/payments/release`, {
-      method: "POST",
+  reject: (milestoneId: string, payload: RejectMilestonePayload) =>
+    request<ContractDetail>(`/milestones/${milestoneId}/reject`, {
+      method: "PATCH",
       headers: authHeaders(),
-      body: JSON.stringify({ milestoneId }),
+      body: JSON.stringify(payload),
     }),
 };
 

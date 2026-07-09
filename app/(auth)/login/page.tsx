@@ -41,24 +41,6 @@ function GoogleIcon() {
   );
 }
 
-function LinkedInIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      width="20"
-      height="20"
-      aria-hidden="true"
-    >
-      <rect width="24" height="24" rx="4" fill="#0A66C2" />
-      <path
-        d="M7.75 9.5H5.25v9h2.5v-9zM6.5 8.5a1.25 1.25 0 1 0 0-2.5 1.25 1.25 0 0 0 0 2.5zM18.75 18.5h-2.5v-4.25c0-1.014-.363-1.625-1.25-1.625-.875 0-1.25.611-1.25 1.625V18.5h-2.5v-9h2.5v1.2c.375-.688 1.1-1.45 2.375-1.45 1.763 0 2.625 1.163 2.625 3.438V18.5z"
-        fill="#fff"
-      />
-    </svg>
-  );
-}
-
 import { LogoIcon } from "@/components/LogoIcon";
 
 // ─── Main Page ───────────────────────────────────────────────────────────────
@@ -207,16 +189,6 @@ export default function LoginPage() {
               >
                 <GoogleIcon />
                 Continue with Google
-              </Button>
-              <Button
-                id="btn-linkedin"
-                type="button"
-                variant="outline"
-                className="w-full h-11 text-sm font-medium gap-3 border-gray-300 hover:bg-gray-50 transition-colors"
-                onClick={() => console.log("LinkedIn OAuth clicked")}
-              >
-                <LinkedInIcon />
-                Continue with LinkedIn
               </Button>
             </div>
 

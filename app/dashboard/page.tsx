@@ -58,6 +58,7 @@ const MOCK_PAYMENTS: Payment[] = [
     id: "p1",
     contractId: "CTR-2024-892",
     milestoneId: "m1",
+    milestoneName: "Design Wireframes",
     amount: 10000000,
     status: "completed",
     createdAt: "2024-05-21T00:00:00Z",
