@@ -5,6 +5,7 @@ import { Wallet, Loader2, ExternalLink, Lock, CheckCircle2, AlertTriangle, Clock
 import { EscrowStatus } from "@/types/web3";
 import { useWallet } from "@/contexts/WalletContext";
 import { DisputeModal } from "@/components/web3/DisputeModal";
+import { contractsApi } from "@/lib/api";
 
 // ─── Status badge config ──────────────────────────────────────────────────────
 
@@ -108,12 +109,21 @@ export function EscrowStatusCard({
 
   const handleDeposit = async () => {
     setIsDepositing(true);
-    // Simulate 1.5s on-chain deposit
-    await new Promise((r) => setTimeout(r, 1500));
-    const next: EscrowStatus = "FUNDED";
-    setStatus(next);
-    onStatusChange?.(next);
-    setIsDepositing(false);
+    try {
+      // Simulate 1.5s on-chain deposit UX + Call real API
+      await Promise.all([
+        new Promise((r) => setTimeout(r, 1500)),
+        contractsApi.fund(contractId)
+      ]);
+      const next: EscrowStatus = "FUNDED";
+      setStatus(next);
+      onStatusChange?.(next);
+    } catch (err) {
+      console.error("Deposit failed:", err);
+      // Fallback or show error toast in real app
+    } finally {
+      setIsDepositing(false);
+    }
   };
 
   return (

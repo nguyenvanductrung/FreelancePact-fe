@@ -39,10 +39,15 @@ export type PaymentTerm =
 export interface Milestone {
   id: string;
   name: string;
-  budget: number; // VND
+  budget: number; // ADA
   deadline: string; // ISO date string
-  status: "pending" | "active" | "completed";
+  status: "pending" | "active" | "submitted" | "revision_requested" | "completed";
   progressPercent: number;
+  submissionNote?: string;
+  rejectionNote?: string;
+  submittedAt?: string;
+  completedAt?: string;
+  files?: string[]; // file URLs
 }
 
 export interface ContractSummary {
@@ -158,11 +163,23 @@ export type PaymentStatus = "pending" | "processing" | "completed" | "failed";
 export interface Payment {
   id: string;
   contractId: string;
-  milestoneId: string;
-  amount: number; // VND
+  milestoneId: string | null;
+  milestoneName: string | null;
+  amount: number; // ADA
   status: PaymentStatus;
   createdAt: string;
   completedAt?: string;
+}
+
+// ─── Milestone Action Payloads ────────────────────────────────────────────────
+
+export interface SubmitMilestonePayload {
+  submissionNote?: string;
+  fileUrls?: string[];
+}
+
+export interface RejectMilestonePayload {
+  rejectionNote: string;
 }
 
 // ─── API Response Wrappers ────────────────────────────────────────────────────
