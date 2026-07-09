@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { X, AlertCircle, Loader2, CheckCircle2 } from "lucide-react";
-import { Milestone } from "@/types";
+import { Milestone, ContractDetail } from "@/types";
+import { milestonesApi } from "@/lib/api";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -10,7 +11,7 @@ interface RejectMilestoneModalProps {
   milestone: Pick<Milestone, "id" | "name">;
   onClose: () => void;
   /** Called after a successful rejection — parent should refresh contract data / chat */
-  onSuccess?: (milestoneId: string) => void;
+  onSuccess?: (updatedContract: ContractDetail) => void;
 }
 
 // ─── Toast ────────────────────────────────────────────────────────────────────
@@ -62,25 +63,15 @@ export function RejectMilestoneModal({ milestone, onClose, onSuccess }: RejectMi
 
     setIsSubmitting(true);
     try {
-      // Gọi API PATCH thực tế theo đặc tả yêu cầu của bạn
-      const response = await fetch(`/api/v1/milestones/${milestone.id}/reject`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-        },
-        body: JSON.stringify({ reason: reason.trim() }),
+      const updatedContract = await milestonesApi.reject(milestone.id, {
+        rejectionNote: reason.trim(),
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to reject the milestone. Please try again.");
-      }
-
       setShowToast(true);
-      onSuccess?.(milestone.id);
+      onSuccess?.(updatedContract);
       setTimeout(onClose, 500);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "An unexpected error occurred.");
+    } catch (err: any) {
+      setError(err?.message ?? "An unexpected error occurred.");
     } finally {
       setIsSubmitting(false);
     }

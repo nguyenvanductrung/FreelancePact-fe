@@ -3,8 +3,8 @@
 import { useState, useRef, useEffect, FormEvent } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { contractsApi } from "@/lib/api";
-import { ContractDetail } from "@/types";
+import { contractsApi, authApi, paymentsApi } from "@/lib/api";
+import { ContractDetail, AuthUser, Payment } from "@/types";
 import { LogoIcon } from "@/components/LogoIcon";
 import {
   ChevronLeft,
@@ -32,6 +32,7 @@ import {
 import { NavBar } from "@/components/shared/NavBar";
 import { SubmitMilestoneModal } from "@/components/milestones/SubmitMilestoneModal";
 import { RejectMilestoneModal} from "@/components/milestones/RejectMilestoneModal";
+import { ApproveMilestoneModal } from "@/components/milestones/ApproveMilestoneModal";
 import { EscrowStatusCard } from "@/components/web3/EscrowStatusCard";
 import { mockEscrowStatusByContractId } from "@/lib/mock-web3";
 import { EscrowStatus } from "@/types/web3";
@@ -349,13 +350,16 @@ function DiscussionPanel() {
   );
 }
 
-// ── Milestones tab placeholder ────────────────────────────────────────────────
+// ── Milestones tab ────────────────────────────────────────────────────────────
 
-function MilestonesTab({ contract }: { contract: ContractDetail }) {
+function MilestonesTab({ contract, currentUser, onContractUpdate }: { contract: ContractDetail, currentUser: AuthUser, onContractUpdate: (c: ContractDetail) => void }) {
   const [submittingMilestone, setSubmittingMilestone] = useState<any>(null);
   const [rejectingMilestone, setRejectingMilestone] = useState<any>(null);
+  const [approvingMilestone, setApprovingMilestone] = useState<any>(null);
   
   const milestones = contract.milestones || [];
+  const isFreelancer = currentUser.id === contract.freelancerId;
+  const isClient = currentUser.id === contract.clientId;
 
   return (
     <div className="flex flex-col gap-3">
@@ -363,18 +367,21 @@ function MilestonesTab({ contract }: { contract: ContractDetail }) {
         <div key={m.id} className="bg-white border border-gray-200 rounded-xl p-4">
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2">
-              <div className={`w-3 h-3 rounded-full flex-shrink-0 ${m.status === "completed" ? "bg-emerald-500" :
+              <div className={`w-3 h-3 rounded-full flex-shrink-0 ${
+                  m.status === "completed" ? "bg-emerald-500" :
+                  m.status === "submitted" ? "bg-purple-500 animate-pulse" :
+                  m.status === "revision_requested" ? "bg-amber-500 animate-pulse" :
                   m.status === "active" ? "bg-blue-500 animate-pulse" : "bg-gray-300"
                 }`} />
               <span className="text-sm font-semibold text-gray-800">{m.name}</span>
             </div>
             <span className="text-sm font-bold flex-shrink-0" style={{ color: NAVY }}>
-              {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(m.budget)}
+              {m.budget.toLocaleString()} ADA
             </span>
           </div>
           <div className="mt-3">
             <div className="flex justify-between text-xs text-gray-400 mb-1">
-              <span>Tiến độ</span>
+              <span>Trạng thái: <span className="font-medium text-gray-700 uppercase">{m.status.replace('_', ' ')}</span></span>
               <span>Hạn: {new Date(m.deadline).toLocaleDateString("vi-VN")}</span>
             </div>
             <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
@@ -387,14 +394,10 @@ function MilestonesTab({ contract }: { contract: ContractDetail }) {
               />
             </div>
           </div>
-          {m.status === "active" && (
-            <div className="mt-4 pt-3 border-t border-gray-100 flex justify-end text-right gap-4">
-              <button
-                onClick={() => setRejectingMilestone(m)}
-                className="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
-              >
-                Reject Milestone
-              </button>
+          
+          <div className="mt-4 pt-3 border-t border-gray-100 flex justify-end text-right gap-3">
+            {/* Active -> Freelancer can submit */}
+            {m.status === "active" && isFreelancer && (
               <button
                 onClick={() => setSubmittingMilestone(m)}
                 className="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors hover:opacity-90"
@@ -402,8 +405,43 @@ function MilestonesTab({ contract }: { contract: ContractDetail }) {
               >
                 Submit Milestone
               </button>
-            </div>
-          )}
+            )}
+
+            {/* Revision Requested -> Freelancer can submit again */}
+            {m.status === "revision_requested" && isFreelancer && (
+              <button
+                onClick={() => setSubmittingMilestone(m)}
+                className="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors hover:opacity-90 bg-amber-600"
+              >
+                Submit Lại
+              </button>
+            )}
+
+            {/* Submitted -> Client can approve or reject */}
+            {m.status === "submitted" && isClient && (
+              <>
+                <button
+                  onClick={() => setRejectingMilestone(m)}
+                  className="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                >
+                  Yêu cầu sửa
+                </button>
+                <button
+                  onClick={() => setApprovingMilestone(m)}
+                  className="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors hover:opacity-90 bg-emerald-600"
+                >
+                  Approve & Giải ngân
+                </button>
+              </>
+            )}
+            
+            {/* Completed */}
+            {m.status === "completed" && (
+              <div className="inline-flex items-center gap-1 text-sm font-medium text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg">
+                <CheckCircle2 className="w-4 h-4" /> Đã nghiệm thu & giải ngân
+              </div>
+            )}
+          </div>
         </div>
       ))}
 
@@ -411,30 +449,81 @@ function MilestonesTab({ contract }: { contract: ContractDetail }) {
         <SubmitMilestoneModal
           milestone={submittingMilestone}
           onClose={() => setSubmittingMilestone(null)}
-          onSuccess={(id) => {
-            console.log("Milestone submitted:", id);
-            // Refresh list here
-          }}
+          onSuccess={onContractUpdate}
         />
       )}
       {rejectingMilestone && (
         <RejectMilestoneModal
           milestone={rejectingMilestone}
           onClose={() => setRejectingMilestone(null)}
-          onSuccess={(id) => {
-            console.log("Milestone rejected:", id);
-          }}
+          onSuccess={onContractUpdate}
+        />
+      )}
+      {approvingMilestone && (
+        <ApproveMilestoneModal
+          milestone={approvingMilestone}
+          onClose={() => setApprovingMilestone(null)}
+          onSuccess={onContractUpdate}
         />
       )}
     </div>
   );
 }
 
-function PaymentsTab() {
+function PaymentsTab({ contractId }: { contractId: string }) {
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    paymentsApi.list(contractId)
+      .then(setPayments)
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, [contractId]);
+
+  if (loading) return <div className="p-6 text-center text-gray-500">Đang tải lịch sử thanh toán...</div>;
+
+  if (payments.length === 0) {
+    return (
+      <div className="bg-white border border-gray-200 rounded-xl p-6 text-center text-gray-400">
+        <CreditCard className="w-8 h-8 mx-auto mb-2 opacity-40" />
+        <p className="text-sm">Chưa có giao dịch thanh toán nào.</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-6 text-center text-gray-400">
-      <CreditCard className="w-8 h-8 mx-auto mb-2 opacity-40" />
-      <p className="text-sm">Lịch sử thanh toán và hóa đơn sẽ hiển thị ở đây.</p>
+    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm text-left">
+          <thead className="bg-gray-50 border-b border-gray-100 text-gray-500 uppercase text-xs font-semibold">
+            <tr>
+              <th className="px-6 py-4">Ngày</th>
+              <th className="px-6 py-4">Milestone</th>
+              <th className="px-6 py-4">Số lượng (ADA)</th>
+              <th className="px-6 py-4">Trạng thái</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {payments.map(p => (
+              <tr key={p.id} className="hover:bg-gray-50 transition-colors">
+                <td className="px-6 py-4 text-gray-600">{new Date(p.createdAt).toLocaleDateString('vi-VN')}</td>
+                <td className="px-6 py-4 font-medium text-gray-900">{p.milestoneName || 'Giải ngân Hợp đồng'}</td>
+                <td className="px-6 py-4 font-bold text-emerald-600">{p.amount.toLocaleString()} ADA</td>
+                <td className="px-6 py-4">
+                  <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
+                    p.status === 'completed' ? 'bg-emerald-100 text-emerald-800' :
+                    p.status === 'processing' ? 'bg-blue-100 text-blue-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`}>
+                    {p.status.toUpperCase()}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
@@ -567,18 +656,25 @@ export default function ContractDetailsPage() {
   const contractId = params?.id as string;
 
   const [contract, setContract] = useState<ContractDetail | null>(null);
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const fetchContract = () => {
+    if (!contractId) return Promise.resolve();
+    return contractsApi.get(contractId).then(res => {
+      setContract(res.data);
+    });
+  };
+
   useEffect(() => {
-    if (contractId) {
-      contractsApi.get(contractId).then(res => {
-        setContract(res.data);
-      }).catch(err => {
-        console.error(err);
-      }).finally(() => {
-        setIsLoading(false);
-      });
-    }
+    Promise.all([
+      fetchContract(),
+      authApi.me().then(res => setCurrentUser(res.data))
+    ]).catch(err => {
+      console.error(err);
+    }).finally(() => {
+      setIsLoading(false);
+    });
   }, [contractId]);
 
   const [activeTab, setActiveTab] = useState<TabKey>("discussion");
@@ -587,7 +683,7 @@ export default function ContractDetailsPage() {
   );
 
   if (isLoading) return <div className="min-h-screen flex items-center justify-center bg-gray-50 text-gray-500">Đang tải...</div>;
-  if (!contract) return <div className="min-h-screen flex items-center justify-center bg-gray-50 text-red-500">Không tìm thấy hợp đồng.</div>;
+  if (!contract || !currentUser) return <div className="min-h-screen flex items-center justify-center bg-gray-50 text-red-500">Không tìm thấy hợp đồng hoặc người dùng.</div>;
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50" style={{ fontFamily: "Inter, system-ui, sans-serif" }}>
@@ -611,8 +707,8 @@ export default function ContractDetailsPage() {
               <DiscussionPanel />
             </div>
           )}
-          {activeTab === "milestones" && <MilestonesTab contract={contract} />}
-          {activeTab === "payments" && <PaymentsTab />}
+          {activeTab === "milestones" && <MilestonesTab contract={contract} currentUser={currentUser} onContractUpdate={setContract} />}
+          {activeTab === "payments" && <PaymentsTab contractId={contract.id} />}
         </div>
 
         {/* ── RIGHT 30% ── */}
