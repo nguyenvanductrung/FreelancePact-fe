@@ -161,10 +161,10 @@ export default function CreateJobPage() {
       };
 
       console.log("Submitting job payload:", payload);
-      // In real scenario: await jobsApi.create(payload);
+      await jobsApi.create(payload);
       
       toast.success("Đăng bài tuyển dụng thành công!");
-      router.push("/jobs/my-jobs");
+      router.push("/dashboard/client");
     } catch (error: any) {
       toast.error(error.message || "Đã xảy ra lỗi khi tạo bài tuyển dụng. Vui lòng thử lại.");
     } finally {

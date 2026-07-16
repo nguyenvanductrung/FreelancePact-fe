@@ -3,8 +3,11 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { NavBar } from "@/components/shared/NavBar";
-import { Briefcase, DollarSign, AlertCircle, Users, Check, X } from "lucide-react";
-import { ContractSummary, Milestone } from "@/types";
+import { Briefcase, DollarSign, AlertCircle, Users, Check, X, Calendar, Coins, Clock } from "lucide-react";
+import { ContractSummary, Milestone, Job } from "@/types";
+import { jobsApi } from "@/lib/api";
+import { format } from "date-fns";
+import { vi } from "date-fns/locale";
 
 // ─── Mock Data ──────────────────────────────────────────────────────────────
 
@@ -81,12 +84,58 @@ export default function ClientDashboardPage() {
   const [projects, setProjects] = useState<(ContractSummary & { budgetUsed: number })[]>([]);
   const [pendingApprovals, setPendingApprovals] = useState<(Milestone & { contractName: string; freelancerName: string })[]>([]);
   const [escrowSummary, setEscrowSummary] = useState(MOCK_ESCROW_SUMMARY);
+  const [postedJobs, setPostedJobs] = useState<Job[]>([]);
+  const [activeTab, setActiveTab] = useState<"projects" | "jobs">("projects");
+  const [loadingJobs, setLoadingJobs] = useState(true);
 
   useEffect(() => {
     // TODO: replace with real API calls using fetch/lib api
     setProjects(MOCK_PROJECTS);
     setPendingApprovals(MOCK_PENDING_APPROVALS);
     setEscrowSummary(MOCK_ESCROW_SUMMARY);
+
+    const fetchMyJobs = async () => {
+      setLoadingJobs(true);
+      try {
+        const jobs = await jobsApi.getMyJobs();
+        setPostedJobs(jobs);
+      } catch (error) {
+        console.error("Failed to fetch my jobs, using mock data", error);
+        setPostedJobs([
+          {
+            id: "job-mock-1",
+            title: "Thiết kế Website Thương mại điện tử",
+            description: "Cần thiết kế giao diện UI/UX và lập trình frontend bằng Next.js cho trang bán hàng...",
+            budget: 1500,
+            duration: "1-3 tháng",
+            deadline: new Date(Date.now() + 86400000 * 5).toISOString(),
+            skills: ["React", "Next.js", "TailwindCSS"],
+            status: "OPEN",
+            clientId: "mock-client",
+            createdAt: new Date(Date.now() - 86400000).toISOString(),
+            updatedAt: new Date(Date.now() - 86400000).toISOString(),
+            applicationCount: 4,
+          },
+          {
+            id: "job-mock-2",
+            title: "Viết Smart Contract Cardano & Escrow Validator",
+            description: "Viết hợp đồng thông minh đa bên bằng ngôn ngữ Aiken, có audit bảo mật...",
+            budget: 3500,
+            duration: "> 3 tháng",
+            deadline: new Date(Date.now() + 86400000 * 12).toISOString(),
+            skills: ["Aiken", "Cardano", "Smart Contract"],
+            status: "OPEN",
+            clientId: "mock-client",
+            createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
+            updatedAt: new Date(Date.now() - 86400000 * 3).toISOString(),
+            applicationCount: 2,
+          }
+        ]);
+      } finally {
+        setLoadingJobs(false);
+      }
+    };
+    fetchMyJobs();
   }, []);
 
   return (
@@ -157,61 +206,140 @@ export default function ClientDashboardPage() {
 
         {/* Main Section - My Projects Table */}
         <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
-          <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-900">My Projects</h3>
-            <Link href="/contracts" className="text-sm text-[#4F6AF5] font-medium hover:underline">
-              View All
-            </Link>
+          <div className="px-6 py-3 bg-gray-50/30 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex gap-4">
+              <button 
+                onClick={() => setActiveTab("projects")}
+                className={`text-base font-bold pb-2 border-b-2 transition-all ${activeTab === "projects" ? "border-[#4F6AF5] text-[#4F6AF5]" : "border-transparent text-gray-500 hover:text-gray-800"}`}
+              >
+                Dự án đang chạy
+              </button>
+              <button 
+                onClick={() => setActiveTab("jobs")}
+                className={`text-base font-bold pb-2 border-b-2 transition-all ${activeTab === "jobs" ? "border-[#4F6AF5] text-[#4F6AF5]" : "border-transparent text-gray-500 hover:text-gray-800"}`}
+              >
+                Tin tuyển dụng ({postedJobs.length})
+              </button>
+            </div>
+            {activeTab === "projects" ? (
+              <Link href="/contracts" className="text-sm text-[#4F6AF5] font-medium hover:underline">
+                Xem tất cả hợp đồng
+              </Link>
+            ) : (
+              <Link href="/jobs" className="text-sm text-[#4F6AF5] font-medium hover:underline">
+                Xem chợ việc làm
+              </Link>
+            )}
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm whitespace-nowrap">
               <thead className="bg-gray-50 text-gray-500">
-                <tr>
-                  <th className="px-6 py-3 font-medium">Project Title</th>
-                  <th className="px-6 py-3 font-medium">Freelancer</th>
-                  <th className="px-6 py-3 font-medium">Progress</th>
-                  <th className="px-6 py-3 font-medium">Budget Used / Total</th>
-                  <th className="px-6 py-3 font-medium">Status</th>
-                  <th className="px-6 py-3 font-medium">Action</th>
-                </tr>
+                {activeTab === "projects" ? (
+                  <tr>
+                    <th className="px-6 py-3 font-medium">Project Title</th>
+                    <th className="px-6 py-3 font-medium">Freelancer</th>
+                    <th className="px-6 py-3 font-medium">Progress</th>
+                    <th className="px-6 py-3 font-medium">Budget Used / Total</th>
+                    <th className="px-6 py-3 font-medium">Status</th>
+                    <th className="px-6 py-3 font-medium">Action</th>
+                  </tr>
+                ) : (
+                  <tr>
+                    <th className="px-6 py-3 font-medium">Tiêu đề công việc</th>
+                    <th className="px-6 py-3 font-medium">Ngân sách</th>
+                    <th className="px-6 py-3 font-medium">Thời gian</th>
+                    <th className="px-6 py-3 font-medium">Hạn chót</th>
+                    <th className="px-6 py-3 font-medium">Ứng tuyển</th>
+                    <th className="px-6 py-3 font-medium">Trạng thái</th>
+                    <th className="px-6 py-3 font-medium">Hành động</th>
+                  </tr>
+                )}
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {projects.map((project) => (
-                  <tr key={project.id} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="px-6 py-4 font-medium text-gray-900">{project.title}</td>
-                    <td className="px-6 py-4 text-gray-600">{project.partnerName}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-[#1B2A4A] rounded-full"
-                            style={{ width: `${project.progressPercent}%` }}
-                          />
+                {activeTab === "projects" ? (
+                  projects.map((project) => (
+                    <tr key={project.id} className="hover:bg-gray-50/50 transition-colors">
+                      <td className="px-6 py-4 font-medium text-gray-900">{project.title}</td>
+                      <td className="px-6 py-4 text-gray-600">{project.partnerName}</td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-[#1B2A4A] rounded-full"
+                              style={{ width: `${project.progressPercent}%` }}
+                            />
+                          </div>
+                          <span className="text-xs text-gray-500">{project.progressPercent}%</span>
                         </div>
-                        <span className="text-xs text-gray-500">{project.progressPercent}%</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-gray-600">
-                      <span className="font-medium text-gray-900">{formatVND(project.budgetUsed)}</span>
-                      <span className="text-gray-400 mx-1">/</span>
-                      <span>{formatVND(project.totalValue)}</span>
-                    </td>
-                    <td className="px-6 py-4">{getStatusBadge(project.status)}</td>
-                    <td className="px-6 py-4">
-                      <Link
-                        href={`/contracts/${project.id}`}
-                        className="inline-flex items-center justify-center px-4 py-1.5 text-xs font-semibold text-white rounded-lg transition-colors hover:opacity-90"
-                        style={{ backgroundColor: "#1B2A4A" }}
-                      >
-                        View
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-                {projects.length === 0 && (
+                      </td>
+                      <td className="px-6 py-4 text-gray-600">
+                        <span className="font-medium text-gray-900">{formatVND(project.budgetUsed)}</span>
+                        <span className="text-gray-400 mx-1">/</span>
+                        <span>{formatVND(project.totalValue)}</span>
+                      </td>
+                      <td className="px-6 py-4">{getStatusBadge(project.status)}</td>
+                      <td className="px-6 py-4">
+                        <Link
+                          href={`/contracts/${project.id}`}
+                          className="inline-flex items-center justify-center px-4 py-1.5 text-xs font-semibold text-white rounded-lg transition-colors hover:opacity-90"
+                          style={{ backgroundColor: "#1B2A4A" }}
+                        >
+                          View
+                        </Link>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  postedJobs.map((job) => (
+                    <tr key={job.id} className="hover:bg-gray-50/50 transition-colors">
+                      <td className="px-6 py-4 font-medium text-gray-900">
+                        <div className="max-w-[250px] truncate" title={job.title}>
+                          {job.title}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-[#4F6AF5] font-bold">
+                        {job.budget.toLocaleString()} ₳
+                      </td>
+                      <td className="px-6 py-4 text-gray-600">
+                        {job.duration || "N/A"}
+                      </td>
+                      <td className="px-6 py-4 text-gray-600">
+                        {job.deadline ? format(new Date(job.deadline), "dd/MM/yyyy", { locale: vi }) : "Không có"}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-blue-700 bg-blue-50 px-2 py-1 rounded-full">
+                          <Users className="w-3.5 h-3.5" />
+                          {job.applicationCount ?? 0} ứng tuyển
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${job.status === "OPEN" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}`}>
+                          {job.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <Link
+                          href={`/jobs/${job.id}`}
+                          className="inline-flex items-center justify-center px-4 py-1.5 text-xs font-semibold text-white rounded-lg transition-colors hover:opacity-90"
+                          style={{ backgroundColor: "#1B2A4A" }}
+                        >
+                          Chi tiết
+                        </Link>
+                      </td>
+                    </tr>
+                  ))
+                )}
+                {activeTab === "projects" && projects.length === 0 && (
                   <tr>
                     <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
                       No projects found.
+                    </td>
+                  </tr>
+                )}
+                {activeTab === "jobs" && postedJobs.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
+                      Chưa có tin tuyển dụng nào được đăng.
                     </td>
                   </tr>
                 )}
