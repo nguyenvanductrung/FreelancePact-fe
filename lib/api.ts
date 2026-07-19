@@ -308,7 +308,7 @@ export const milestonesApi = {
 
 export const jobsApi = {
   create: (data: CreateJobPayload) =>
-    request<Job>("/jobs", {
+    request<ApiResponse<Job>>("/jobs", {
       method: "POST",
       headers: authHeaders(),
       body: JSON.stringify(data),
@@ -322,30 +322,30 @@ export const jobsApi = {
     if (params?.budgetMax !== undefined) query.append("budgetMax", params.budgetMax.toString());
 
     const queryString = query.toString();
-    return request<Job[]>(`/jobs${queryString ? `?${queryString}` : ""}`);
+    return request<ApiResponse<Job[]>>(`/jobs${queryString ? `?${queryString}` : ""}`);
   },
 
   getMyJobs: () =>
-    request<Job[]>("/jobs/my-jobs", {
+    request<ApiResponse<Job[]>>("/jobs/my-jobs", {
       headers: authHeaders(),
     }),
 
-  getById: (id: string) => request<Job>(`/jobs/${id}`),
+  getById: (id: string) => request<ApiResponse<Job>>(`/jobs/${id}`),
 
   apply: (jobId: string, data: ApplyPayload) =>
-    request<Application>(`/jobs/${jobId}/apply`, {
+    request<ApiResponse<Application>>(`/jobs/${jobId}/apply`, {
       method: "POST",
       headers: authHeaders(),
       body: JSON.stringify(data),
     }),
 
   getApplications: (jobId: string) =>
-    request<Application[]>(`/jobs/${jobId}/applications`, {
+    request<ApiResponse<Application[]>>(`/jobs/${jobId}/applications`, {
       headers: authHeaders(),
     }),
 
   selectFreelancer: (jobId: string, applicationId: string) =>
-    request<{ contractId: string }>(`/jobs/${jobId}/applications/${applicationId}/select`, {
+    request<ApiResponse<{ contractId: string }>>(`/jobs/${jobId}/applications/${applicationId}/select`, {
       method: "POST",
       headers: authHeaders(),
     }),

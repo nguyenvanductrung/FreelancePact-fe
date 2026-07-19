@@ -15,7 +15,7 @@ import { SectionCard, SectionHeading } from "@/components/shared/SectionCard";
 import { NAVY } from "@/constants";
 import { jobsApi } from "@/lib/api";
 
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -120,7 +120,7 @@ export default function CreateJobPage() {
       form.setValue("budget", undefined as any, { shouldValidate: true });
       return;
     }
-    
+
     // Only allow numbers and one decimal point
     if (!/^\d*\.?\d*$/.test(val)) return;
 
@@ -150,7 +150,7 @@ export default function CreateJobPage() {
     try {
       // Simulate API call format per instructions
       await new Promise((resolve) => setTimeout(resolve, 800));
-      
+
       const payload = {
         title: values.title,
         description: values.description,
@@ -162,7 +162,7 @@ export default function CreateJobPage() {
 
       console.log("Submitting job payload:", payload);
       await jobsApi.create(payload);
-      
+
       toast.success("Đăng bài tuyển dụng thành công!");
       router.push("/dashboard/client");
     } catch (error: any) {
@@ -202,7 +202,7 @@ export default function CreateJobPage() {
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5" noValidate>
-            
+
             {/* ── Section 1: Thông Tin Chung */}
             <SectionCard>
               <SectionHeading>Thông Tin Chung</SectionHeading>
@@ -305,24 +305,20 @@ export default function CreateJobPage() {
                           Hạn chót ứng tuyển <span className="text-red-500">*</span>
                         </FormLabel>
                         <Popover>
-                          <FormControl>
-                            <PopoverTrigger render={
-                              <Button
-                                variant={"outline"}
-                                className={cn(
-                                  "w-full pl-3 text-left font-normal border-gray-300 hover:bg-gray-50",
-                                  !field.value && "text-muted-foreground"
-                                )}
-                              >
-                                {field.value ? (
-                                  format(field.value, "PPP", { locale: vi })
-                                ) : (
-                                  <span>Chọn ngày...</span>
-                                )}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                              </Button>
-                            } />
-                          </FormControl>
+                          <PopoverTrigger
+                            className={cn(
+                              buttonVariants({ variant: "outline" }),
+                              "w-full pl-3 text-left font-normal border-gray-300 hover:bg-gray-50",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, "PPP", { locale: vi })
+                            ) : (
+                              <span>Chọn ngày...</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </PopoverTrigger>
                           <PopoverContent className="w-auto p-0" align="start">
                             <Calendar
                               mode="single"
@@ -375,9 +371,9 @@ export default function CreateJobPage() {
                         <div className="space-y-2">
                           <div className="flex flex-wrap gap-2">
                             {field.value.map((skill) => (
-                              <Badge 
-                                key={skill} 
-                                variant="secondary" 
+                              <Badge
+                                key={skill}
+                                variant="secondary"
                                 className="bg-blue-50 text-blue-700 hover:bg-blue-100 gap-1 pr-1.5"
                               >
                                 {skill}
