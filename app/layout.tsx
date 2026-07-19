@@ -3,6 +3,13 @@ import localFont from "next/font/local";
 import "./globals.css";
 import GoogleAuthProvider from "@/components/providers/GoogleAuthProvider";
 import { WalletContextProvider } from "@/contexts/WalletContext";
+import { Toaster } from "sonner";
+import dynamic from "next/dynamic";
+
+const SocketProvider = dynamic(
+  () => import("@/components/providers/SocketProvider").then((mod) => mod.SocketProvider),
+  { ssr: false }
+);
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -33,7 +40,10 @@ export default function RootLayout({
       >
         <GoogleAuthProvider>
           <WalletContextProvider>
-            {children}
+            <SocketProvider>
+              {children}
+              <Toaster />
+            </SocketProvider>
           </WalletContextProvider>
         </GoogleAuthProvider>
       </body>

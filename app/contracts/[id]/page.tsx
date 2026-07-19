@@ -3,8 +3,9 @@
 import { useState, useRef, useEffect, FormEvent } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { contractsApi, authApi, paymentsApi } from "@/lib/api";
-import { ContractDetail, AuthUser, Payment } from "@/types";
+import { contractsApi, authApi, paymentsApi, chatApi } from "@/lib/api";
+import { ContractDetail, AuthUser, Payment, ChatMessage } from "@/types";
+import { toast } from "sonner";
 import { LogoIcon } from "@/components/LogoIcon";
 import {
   ChevronLeft,
@@ -31,59 +32,14 @@ import {
 } from "lucide-react";
 import { NavBar } from "@/components/shared/NavBar";
 import { SubmitMilestoneModal } from "@/components/milestones/SubmitMilestoneModal";
-import { RejectMilestoneModal} from "@/components/milestones/RejectMilestoneModal";
+import { RejectMilestoneModal } from "@/components/milestones/RejectMilestoneModal";
 import { ApproveMilestoneModal } from "@/components/milestones/ApproveMilestoneModal";
 import { EscrowStatusCard } from "@/components/web3/EscrowStatusCard";
 import { mockEscrowStatusByContractId } from "@/lib/mock-web3";
 import { EscrowStatus } from "@/types/web3";
+import { useSocket } from "@/components/providers/SocketProvider";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 
-type MessageType = "client" | "self" | "system-file";
-
-interface ChatMessage {
-  id: number;
-  type: MessageType;
-  sender?: string;
-  avatar?: string;
-  time: string;
-  text?: string;
-  file?: {
-    name: string;
-    size: string;
-    note: string;
-  };
-}
-
-// ─── Static Data ─────────────────────────────────────────────────────────────
-
-const INITIAL_MESSAGES: ChatMessage[] = [
-  {
-    id: 1,
-    type: "client",
-    sender: "Sarah Connor",
-    avatar: "SC",
-    time: "09:11 SA",
-    text: "Chào bạn, tôi đã tải lên các bản wireframe ban đầu cho luồng Đăng ký. Bạn có thể xem qua ở tab Milestones nhé. Có một vài điểm về bảo mật tôi cần xác nhận lại.",
-  },
-  {
-    id: 2,
-    type: "system-file",
-    sender: "Hệ thống",
-    time: "09:45 SA",
-    file: {
-      name: "Wireframes_v1.pdf",
-      size: "2.4 MB",
-      note: "Đã tải lên vào Milestone 1",
-    },
-  },
-  {
-    id: 3,
-    type: "self",
-    time: "10:12 SA",
-    text: "Cảm ơn Sarah. Tôi sẽ xem qua ngay chiều nay. Về phần bảo mật 2FA, chúng ta có thể sử dụng giải pháp mà tôi đã note trong tài liệu yêu cầu ban đầu.",
-  },
-];
 
 const NAVY = "#0B3C5D";
 
@@ -155,8 +111,8 @@ function TabBar({ active, onChange }: { active: TabKey; onChange: (t: TabKey) =>
           key={tab.key}
           onClick={() => onChange(tab.key)}
           className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-all ${active === tab.key
-              ? "bg-gray-100 text-gray-900"
-              : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+            ? "bg-gray-100 text-gray-900"
+            : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
             }`}
         >
           {tab.icon}
@@ -181,13 +137,15 @@ function AvatarCircle({ initials, color }: { initials: string; color: string }) 
 }
 
 function ClientBubble({ msg }: { msg: ChatMessage }) {
+  const time = new Date(msg.createdAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+  const initials = msg.senderName ? msg.senderName.substring(0, 2).toUpperCase() : "U";
   return (
     <div className="flex gap-3 items-start">
-      <AvatarCircle initials="SC" color="linear-gradient(135deg,#F59E0B,#D97706)" />
+      <AvatarCircle initials={initials} color="linear-gradient(135deg,#F59E0B,#D97706)" />
       <div className="flex-1 max-w-[80%]">
         <div className="flex items-baseline gap-2 mb-1">
-          <span className="text-sm font-semibold text-gray-800">{msg.sender}</span>
-          <span className="text-xs text-gray-400">{msg.time}</span>
+          <span className="text-sm font-semibold text-gray-800">{msg.senderName}</span>
+          <span className="text-xs text-gray-400">{time}</span>
         </div>
         <div className="bg-white border border-gray-200 rounded-xl rounded-tl-none px-4 py-3 shadow-sm">
           <p className="text-sm text-gray-700 leading-relaxed">{msg.text}</p>
@@ -235,11 +193,12 @@ function SystemFileBubble({ msg }: { msg: ChatMessage }) {
 }
 
 function SelfBubble({ msg }: { msg: ChatMessage }) {
+  const time = new Date(msg.createdAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
   return (
     <div className="flex gap-3 items-end justify-end">
       <div className="max-w-[75%]">
         <div className="flex items-baseline gap-2 mb-1 justify-end">
-          <span className="text-xs text-gray-400">{msg.time}</span>
+          <span className="text-xs text-gray-400">{time}</span>
           <span className="text-sm font-semibold text-gray-800">Bạn</span>
         </div>
         <div
@@ -268,28 +227,73 @@ function DateSeparator({ label }: { label: string }) {
 
 // ── Discussion panel ──────────────────────────────────────────────────────────
 
-function DiscussionPanel() {
-  const [messages, setMessages] = useState<ChatMessage[]>(INITIAL_MESSAGES);
+function DiscussionPanel({ contractId, currentUser }: { contractId: string; currentUser: AuthUser }) {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
+  const [isSending, setIsSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const socket = useSocket();
+
+  // Fetch historical messages on mount
+  useEffect(() => {
+    if (!contractId) return;
+    chatApi.getMessages(contractId, 1, 100)
+      .then((res: any) => setMessages(res.data || []))
+      .catch((err: any) => console.error("Failed to fetch messages:", err));
+  }, [contractId]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleSend = (e: FormEvent) => {
+  useEffect(() => {
+    if (!socket || !contractId) return;
+    socket.emit("joinContractRoom", { contractId });
+    const handleNewMessage = (msg: ChatMessage) => {
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === msg.id)) return prev;
+        return [...prev, msg];
+      });
+    };
+    socket.on("newMessage", handleNewMessage);
+    return () => {
+      socket.off("newMessage", handleNewMessage);
+      socket.emit("leaveContractRoom", { contractId });
+    };
+  }, [socket, contractId]);
+
+  const handleSend = async (e: FormEvent) => {
     e.preventDefault();
     const trimmed = input.trim();
-    if (!trimmed) return;
-    const newMsg: ChatMessage = {
-      id: Date.now(),
-      type: "self",
-      time: new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
-      text: trimmed,
-    };
-    setMessages((prev) => [...prev, newMsg]);
-    setInput("");
-    console.log("Message sent:", { text: trimmed });
+    if (!trimmed || isSending) return;
+    setIsSending(true);
+    try {
+      const token = localStorage.getItem("accessToken");
+      console.log("[DEBUG] Token:", token ? "present" : "MISSING");
+      const res = await fetch(
+        `http://localhost:3001/api/v1/contracts/${contractId}/messages`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ type: "TEXT", text: trimmed }),
+        }
+      );
+      const data = await res.json();
+      console.log("[DEBUG] Response:", res.status, data);
+      if (!res.ok) {
+        toast.error(`Lỗi ${res.status}: ${data.message} — errors: ${JSON.stringify(data.errors)}`);
+        return;
+      }
+      setInput("");
+    } catch (err: any) {
+      console.error("Failed to send message:", err);
+      toast.error(err?.message || "Lỗi gửi tin nhắn");
+    } finally {
+      setIsSending(false);
+    }
   };
 
   return (
@@ -308,11 +312,14 @@ function DiscussionPanel() {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 bg-gray-50/40">
-        <DateSeparator label="HÔM NAY, 24 THG 10" />
+        <DateSeparator label="HÔM NAY" />
+        {messages.length === 0 && (
+          <p className="text-center text-sm text-gray-400 py-8">Chưa có tin nhắn nào. Hãy bắt đầu cuộc trò chuyận!</p>
+        )}
         {messages.map((msg) => {
-          if (msg.type === "client") return <ClientBubble key={msg.id} msg={msg} />;
-          if (msg.type === "system-file") return <SystemFileBubble key={msg.id} msg={msg} />;
-          return <SelfBubble key={msg.id} msg={msg} />;
+          if (msg.type === "system") return <SystemFileBubble key={msg.id} msg={msg} />;
+          if (msg.senderId === currentUser.id) return <SelfBubble key={msg.id} msg={msg} />;
+          return <ClientBubble key={msg.id} msg={msg} />;
         })}
         <div ref={bottomRef} />
       </div>
@@ -338,7 +345,8 @@ function DiscussionPanel() {
           </div>
           <button
             type="submit"
-            className="w-10 h-10 rounded-full flex items-center justify-center text-white flex-shrink-0 transition-opacity hover:opacity-90 active:scale-95"
+            disabled={isSending}
+            className="w-10 h-10 rounded-full flex items-center justify-center text-white flex-shrink-0 transition-opacity hover:opacity-90 active:scale-95 disabled:opacity-50"
             style={{ backgroundColor: NAVY }}
             aria-label="Send message"
           >
@@ -397,7 +405,7 @@ function MilestonesTab({ contract, currentUser, onContractUpdate }: { contract: 
   const [submittingMilestone, setSubmittingMilestone] = useState<any>(null);
   const [rejectingMilestone, setRejectingMilestone] = useState<any>(null);
   const [approvingMilestone, setApprovingMilestone] = useState<any>(null);
-  
+
   const milestones = contract.milestones || [];
   const isFreelancer = currentUser.id === contract.freelancerId;
   const isClient = currentUser.id === contract.clientId;
@@ -437,57 +445,57 @@ function MilestonesTab({ contract, currentUser, onContractUpdate }: { contract: 
                 />
               </div>
             </div>
-            
+
             <div className="mt-4 pt-3 border-t border-gray-100 flex justify-end text-right gap-3">
-            {/* Active -> Freelancer can submit */}
-            {m.status === "active" && isFreelancer && (
-              <button
-                onClick={() => setSubmittingMilestone(m)}
-                className="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors hover:opacity-90"
-                style={{ backgroundColor: NAVY }}
-              >
-                Submit Milestone
-              </button>
-            )}
-
-            {/* Revision Requested -> Freelancer can submit again */}
-            {m.status === "revision_requested" && isFreelancer && (
-              <button
-                onClick={() => setSubmittingMilestone(m)}
-                className="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors hover:opacity-90 bg-amber-600"
-              >
-                Submit Lại
-              </button>
-            )}
-
-            {/* Submitted -> Client can approve or reject */}
-            {m.status === "submitted" && isClient && (
-              <>
+              {/* Active -> Freelancer can submit */}
+              {m.status === "active" && isFreelancer && (
                 <button
-                  onClick={() => setRejectingMilestone(m)}
-                  className="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                  onClick={() => setSubmittingMilestone(m)}
+                  className="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors hover:opacity-90"
+                  style={{ backgroundColor: NAVY }}
                 >
-                  Yêu cầu sửa
+                  Submit Milestone
                 </button>
+              )}
+
+              {/* Revision Requested -> Freelancer can submit again */}
+              {m.status === "revision_requested" && isFreelancer && (
                 <button
-                  onClick={() => setApprovingMilestone(m)}
-                  className="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors hover:opacity-90 bg-emerald-600"
+                  onClick={() => setSubmittingMilestone(m)}
+                  className="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors hover:opacity-90 bg-amber-600"
                 >
-                  Approve & Giải ngân
+                  Submit Lại
                 </button>
-              </>
-            )}
-            
-            {/* Completed */}
-            {m.status === "completed" && (
-              <div className="inline-flex items-center gap-1 text-sm font-medium text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg">
-                <CheckCircle2 className="w-4 h-4" /> Đã nghiệm thu & giải ngân
-              </div>
-            )}
+              )}
+
+              {/* Submitted -> Client can approve or reject */}
+              {m.status === "submitted" && isClient && (
+                <>
+                  <button
+                    onClick={() => setRejectingMilestone(m)}
+                    className="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                  >
+                    Yêu cầu sửa
+                  </button>
+                  <button
+                    onClick={() => setApprovingMilestone(m)}
+                    className="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold text-white rounded-lg transition-colors hover:opacity-90 bg-emerald-600"
+                  >
+                    Approve & Giải ngân
+                  </button>
+                </>
+              )}
+
+              {/* Completed */}
+              {m.status === "completed" && (
+                <div className="inline-flex items-center gap-1 text-sm font-medium text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg">
+                  <CheckCircle2 className="w-4 h-4" /> Đã nghiệm thu & giải ngân
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      );
-    })}
+        );
+      })}
 
       {submittingMilestone && (
         <SubmitMilestoneModal
@@ -555,11 +563,10 @@ function PaymentsTab({ contractId }: { contractId: string }) {
                 <td className="px-6 py-4 font-medium text-gray-900">{p.milestoneName || 'Giải ngân Hợp đồng'}</td>
                 <td className="px-6 py-4 font-bold text-emerald-600">{p.amount.toLocaleString()} ADA</td>
                 <td className="px-6 py-4">
-                  <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
-                    p.status === 'completed' ? 'bg-emerald-100 text-emerald-800' :
+                  <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${p.status === 'completed' ? 'bg-emerald-100 text-emerald-800' :
                     p.status === 'processing' ? 'bg-blue-100 text-blue-800' :
-                    'bg-gray-100 text-gray-800'
-                  }`}>
+                      'bg-gray-100 text-gray-800'
+                    }`}>
                     {p.status.toUpperCase()}
                   </span>
                 </td>
@@ -748,7 +755,7 @@ export default function ContractDetailsPage() {
           {/* Discussion is always rendered for chat height; others are stacked below header */}
           {activeTab === "discussion" && (
             <div className="flex flex-col" style={{ height: "calc(100vh - 280px)", minHeight: "400px" }}>
-              <DiscussionPanel />
+              <DiscussionPanel contractId={contractId} currentUser={currentUser} />
             </div>
           )}
           {activeTab === "milestones" && <MilestonesTab contract={contract} currentUser={currentUser} onContractUpdate={setContract} />}
