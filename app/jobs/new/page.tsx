@@ -166,7 +166,13 @@ export default function CreateJobPage() {
       toast.success("Đăng bài tuyển dụng thành công!");
       router.push("/dashboard/client");
     } catch (error: any) {
-      toast.error(error.message || "Đã xảy ra lỗi khi tạo bài tuyển dụng. Vui lòng thử lại.");
+      if (error.errors && Object.keys(error.errors).length > 0) {
+        const firstErrorKey = Object.keys(error.errors)[0];
+        const firstErrorMessage = error.errors[firstErrorKey][0];
+        toast.error(`Lỗi dữ liệu (${firstErrorKey}): ${firstErrorMessage}`);
+      } else {
+        toast.error(error.message || "Đã xảy ra lỗi khi tạo bài tuyển dụng. Vui lòng thử lại.");
+      }
     } finally {
       setIsSubmitting(false);
     }

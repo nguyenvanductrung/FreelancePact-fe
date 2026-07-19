@@ -1,11 +1,15 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Bell, Briefcase, MessageSquare, User, AlertCircle, Search, Plus } from "lucide-react";
 import { LogoIcon } from "@/components/LogoIcon";
 import { NAVY } from "@/constants";
 import { WalletConnectButton } from "@/components/web3/WalletConnectButton";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { AuthUser } from "@/types";
+import { authApi } from "@/lib/api";
+import { toast } from "sonner";
 
 interface NavLink {
   href: string;
@@ -30,6 +34,40 @@ const DEFAULT_NAV_LINKS: NavLink[] = [
 ];
 
 export function NavBar({ activePage, userInitials = "JD" }: NavBarProps) {
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [isSwitching, setIsSwitching] = useState(false);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const res = await authApi.me();
+        if (res.data) setUser(res.data);
+      } catch (err) {
+        // Silently ignore if not logged in
+      }
+    };
+    fetchUser();
+  }, []);
+
+  const getInitials = (name?: string) => {
+    if (!name) return userInitials;
+    return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+  };
+
+  const handleSwitchRole = async (targetRole: "client" | "freelancer") => {
+    if (isSwitching) return;
+    setIsSwitching(true);
+    try {
+      const { profileApi } = await import("@/lib/api");
+      await profileApi.switchRole(targetRole);
+      window.location.href = targetRole === "client" ? "/dashboard/client" : "/dashboard";
+    } catch (e) {
+      console.error(e);
+      toast.error("Không thể chuyển đổi vai trò lúc này");
+      setIsSwitching(false);
+    }
+  };
+
   return (
     <nav
       className="sticky top-0 z-30 flex items-center justify-between px-8 py-3 bg-white border-b border-gray-200 shadow-sm"
@@ -87,44 +125,42 @@ export function NavBar({ activePage, userInitials = "JD" }: NavBarProps) {
             style={{ background: "linear-gradient(135deg, #7E57C2, #512DA8)" }}
             aria-label="Profile menu"
           >
-            {userInitials}
+            {getInitials(user?.fullName)}
           </PopoverTrigger>
           <PopoverContent align="end" className="w-56 p-2">
             <div className="flex flex-col gap-1">
+              {user?.fullName && (
+                <div className="px-3 py-2 border-b border-gray-100 mb-1">
+                  <p className="text-sm font-bold text-gray-800">{user.fullName}</p>
+                  <p className="text-xs text-gray-500 capitalize">Vai trò: {user.role}</p>
+                </div>
+              )}
               <Link
                 href="/profile"
                 className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
               >
                 Hồ sơ cá nhân
               </Link>
-              <button
-                className="w-full text-left px-3 py-2 text-sm text-blue-600 font-semibold hover:bg-blue-50 rounded-md transition-colors"
-                onClick={async () => {
-                  try {
-                    const { profileApi } = await import("@/lib/api");
-                    await profileApi.switchRole("client"); // or dynamically based on current
-                    window.location.href = "/dashboard/client";
-                  } catch (e) {
-                    console.error(e);
-                  }
-                }}
-              >
-                Chuyển sang Client
-              </button>
-              <button
-                className="w-full text-left px-3 py-2 text-sm text-emerald-600 font-semibold hover:bg-emerald-50 rounded-md transition-colors"
-                onClick={async () => {
-                  try {
-                    const { profileApi } = await import("@/lib/api");
-                    await profileApi.switchRole("freelancer");
-                    window.location.href = "/dashboard";
-                  } catch (e) {
-                    console.error(e);
-                  }
-                }}
-              >
-                Chuyển sang Freelancer
-              </button>
+              
+              {!user || user.role === "freelancer" ? (
+                <button
+                  disabled={isSwitching}
+                  className="w-full text-left px-3 py-2 text-sm text-blue-600 font-semibold hover:bg-blue-50 rounded-md transition-colors disabled:opacity-50"
+                  onClick={() => handleSwitchRole("client")}
+                >
+                  {isSwitching ? "Đang chuyển..." : "Chuyển sang Client"}
+                </button>
+              ) : null}
+              
+              {!user || user.role === "client" ? (
+                <button
+                  disabled={isSwitching}
+                  className="w-full text-left px-3 py-2 text-sm text-emerald-600 font-semibold hover:bg-emerald-50 rounded-md transition-colors disabled:opacity-50"
+                  onClick={() => handleSwitchRole("freelancer")}
+                >
+                  {isSwitching ? "Đang chuyển..." : "Chuyển sang Freelancer"}
+                </button>
+              ) : null}
             </div>
           </PopoverContent>
         </Popover>
