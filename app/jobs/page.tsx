@@ -8,6 +8,7 @@ import { Footer } from "@/components/shared/Footer";
 import { NAVY } from "@/constants";
 import { Job } from "@/types";
 import { mockJobs } from "@/lib/mock-data/jobs";
+import { jobsApi } from "@/lib/api";
 
 // shadcn UI components
 import { Button } from "@/components/ui/button";
@@ -67,24 +68,25 @@ export default function JobsPage() {
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Extract all unique skills for filter
+  // Extract all unique skills for filter from live data
   const allSkills = useMemo(() => {
     const skills = new Set<string>();
-    mockJobs.forEach(job => job.skills.forEach(s => skills.add(s)));
+    jobs.forEach(job => job.skills.forEach(s => skills.add(s)));
     return Array.from(skills).sort();
-  }, []);
+  }, [jobs]);
 
-  // Fetch / Simulate API Call
+  // Fetch from real API, fallback to mock data on error
   useEffect(() => {
     const fetchJobs = async () => {
       setLoading(true);
       setError(null);
       try {
-        // Tạm thời dùng mock data, simulate network delay
-        await new Promise(resolve => setTimeout(resolve, 800));
-        setJobs(mockJobs);
+        const res = await jobsApi.getAll();
+        setJobs(res.data);
       } catch (err) {
-        setError("Không thể tải danh sách công việc. Vui lòng thử lại sau.");
+        console.warn("API unavailable, falling back to mock data", err);
+        // Graceful fallback: dùng mock data khi backend chưa sẵn sàng
+        setJobs(mockJobs as any);
       } finally {
         setLoading(false);
       }
