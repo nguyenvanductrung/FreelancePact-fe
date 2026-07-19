@@ -352,6 +352,47 @@ function DiscussionPanel() {
 
 // ── Milestones tab ────────────────────────────────────────────────────────────
 
+function getMilestoneStatusDetails(status: string) {
+  switch (status.toLowerCase()) {
+    case "pending":
+      return {
+        label: "Pending",
+        dotClass: "bg-gray-300",
+        textClass: "text-gray-500",
+      };
+    case "active":
+      return {
+        label: "In Progress",
+        dotClass: "bg-blue-500 animate-pulse",
+        textClass: "text-blue-600",
+      };
+    case "submitted":
+      return {
+        label: "Under Review",
+        dotClass: "bg-purple-500 animate-pulse",
+        textClass: "text-purple-600",
+      };
+    case "revision_requested":
+      return {
+        label: "REVISION_REQUESTED",
+        dotClass: "bg-amber-500 animate-pulse",
+        textClass: "text-amber-600",
+      };
+    case "completed":
+      return {
+        label: "Completed",
+        dotClass: "bg-emerald-500",
+        textClass: "text-emerald-600",
+      };
+    default:
+      return {
+        label: status.toUpperCase(),
+        dotClass: "bg-gray-300",
+        textClass: "text-gray-500",
+      };
+  }
+}
+
 function MilestonesTab({ contract, currentUser, onContractUpdate }: { contract: ContractDetail, currentUser: AuthUser, onContractUpdate: (c: ContractDetail) => void }) {
   const [submittingMilestone, setSubmittingMilestone] = useState<any>(null);
   const [rejectingMilestone, setRejectingMilestone] = useState<any>(null);
@@ -363,39 +404,41 @@ function MilestonesTab({ contract, currentUser, onContractUpdate }: { contract: 
 
   return (
     <div className="flex flex-col gap-3">
-      {milestones.map((m) => (
-        <div key={m.id} className="bg-white border border-gray-200 rounded-xl p-4">
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <div className={`w-3 h-3 rounded-full flex-shrink-0 ${
-                  m.status === "completed" ? "bg-emerald-500" :
-                  m.status === "submitted" ? "bg-purple-500 animate-pulse" :
-                  m.status === "revision_requested" ? "bg-amber-500 animate-pulse" :
-                  m.status === "active" ? "bg-blue-500 animate-pulse" : "bg-gray-300"
-                }`} />
-              <span className="text-sm font-semibold text-gray-800">{m.name}</span>
+      {milestones.map((m) => {
+        const statusDetails = getMilestoneStatusDetails(m.status);
+        return (
+          <div key={m.id} className="bg-white border border-gray-200 rounded-xl p-4">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <div className={`w-3 h-3 rounded-full flex-shrink-0 ${statusDetails.dotClass}`} />
+                <span className="text-sm font-semibold text-gray-800">{m.name}</span>
+              </div>
+              <span className="text-sm font-bold flex-shrink-0" style={{ color: NAVY }}>
+                {m.budget.toLocaleString()} ADA
+              </span>
             </div>
-            <span className="text-sm font-bold flex-shrink-0" style={{ color: NAVY }}>
-              {m.budget.toLocaleString()} ADA
-            </span>
-          </div>
-          <div className="mt-3">
-            <div className="flex justify-between text-xs text-gray-400 mb-1">
-              <span>Trạng thái: <span className="font-medium text-gray-700 uppercase">{m.status.replace('_', ' ')}</span></span>
-              <span>Hạn: {new Date(m.deadline).toLocaleDateString("vi-VN")}</span>
+            <div className="mt-3">
+              <div className="flex justify-between text-xs text-gray-400 mb-1">
+                <span>
+                  Trạng thái:{" "}
+                  <span className={`font-semibold ${statusDetails.textClass}`}>
+                    {statusDetails.label}
+                  </span>
+                </span>
+                <span>Hạn: {new Date(m.deadline).toLocaleDateString("vi-VN")}</span>
+              </div>
+              <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{
+                    width: `${m.progressPercent}%`,
+                    backgroundColor: m.status === "completed" ? "#10B981" : NAVY,
+                  }}
+                />
+              </div>
             </div>
-            <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-              <div
-                className="h-full rounded-full transition-all"
-                style={{
-                  width: `${m.progressPercent}%`,
-                  backgroundColor: m.status === "completed" ? "#10B981" : NAVY,
-                }}
-              />
-            </div>
-          </div>
-          
-          <div className="mt-4 pt-3 border-t border-gray-100 flex justify-end text-right gap-3">
+            
+            <div className="mt-4 pt-3 border-t border-gray-100 flex justify-end text-right gap-3">
             {/* Active -> Freelancer can submit */}
             {m.status === "active" && isFreelancer && (
               <button
@@ -443,7 +486,8 @@ function MilestonesTab({ contract, currentUser, onContractUpdate }: { contract: 
             )}
           </div>
         </div>
-      ))}
+      );
+    })}
 
       {submittingMilestone && (
         <SubmitMilestoneModal
