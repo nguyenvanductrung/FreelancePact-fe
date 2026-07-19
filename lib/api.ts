@@ -320,7 +320,7 @@ export const jobsApi = {
     if (params?.skills) query.append("skills", params.skills);
     if (params?.budgetMin !== undefined) query.append("budgetMin", params.budgetMin.toString());
     if (params?.budgetMax !== undefined) query.append("budgetMax", params.budgetMax.toString());
-    
+
     const queryString = query.toString();
     return request<Job[]>(`/jobs${queryString ? `?${queryString}` : ""}`);
   },
