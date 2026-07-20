@@ -156,6 +156,7 @@ function ClientBubble({ msg }: { msg: ChatMessage }) {
 }
 
 function SystemFileBubble({ msg }: { msg: ChatMessage }) {
+  const time = new Date(msg.createdAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
   return (
     <div className="flex gap-3 items-start">
       <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
@@ -163,8 +164,8 @@ function SystemFileBubble({ msg }: { msg: ChatMessage }) {
       </div>
       <div className="flex-1 max-w-[80%]">
         <div className="flex items-baseline gap-2 mb-1">
-          <span className="text-sm font-semibold text-gray-500">{msg.sender}</span>
-          <span className="text-xs text-gray-400">{msg.time}</span>
+          <span className="text-sm font-semibold text-gray-500">{msg.senderName}</span>
+          <span className="text-xs text-gray-400">{time}</span>
         </div>
         {msg.file && (
           <div className="bg-white border border-gray-200 rounded-xl rounded-tl-none shadow-sm overflow-hidden">
@@ -175,7 +176,7 @@ function SystemFileBubble({ msg }: { msg: ChatMessage }) {
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-gray-800 truncate">{msg.file.name}</p>
                 <p className="text-xs text-gray-400 mt-0.5">
-                  {msg.file.size} • {msg.file.note}
+                  {msg.file.sizeBytes} bytes • {msg.file.milestoneNote}
                 </p>
               </div>
               <button
