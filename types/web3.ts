@@ -1,3 +1,5 @@
+import { BrowserWallet } from '@meshsdk/core';
+
 export type WalletProvider = 'nami' | 'eternl';
 
 export interface WalletState {
@@ -5,6 +7,7 @@ export interface WalletState {
   provider: WalletProvider | null;
   address: string | null;
   balanceAda: number;
+  wallet?: BrowserWallet | null;
 }
 
 export type EscrowStatus =

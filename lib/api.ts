@@ -350,3 +350,33 @@ export const jobsApi = {
       headers: authHeaders(),
     }),
 };
+
+// ─── Disputes API ─────────────────────────────────────────────────────────────
+
+export const disputesApi = {
+  open: (contractId: string, reason: string, signerAddress: string) =>
+    request<any>(`/contracts/${contractId}/dispute`, {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify({ reason, signerAddress }),
+    }),
+
+  vote: (disputeId: string, choice: string, comment?: string) =>
+    request<any>(`/disputes/${disputeId}/vote`, {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify({ choice, comment }),
+    }),
+
+  submitPartialSig: (disputeId: string, voteId: string, partialSigCbor: string) =>
+    request<any>(`/disputes/${disputeId}/partial-sig`, {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify({ voteId, partialSigCbor }),
+    }),
+    
+  get: (disputeId: string) =>
+    request<any>(`/disputes/${disputeId}`, {
+      headers: authHeaders(),
+    }),
+};

@@ -3,18 +3,23 @@
 import { useState, useEffect } from "react";
 import { AlertTriangle, ShieldAlert, CheckCircle2, User, Loader2, Gavel } from "lucide-react";
 import { NAVY } from "@/constants";
+import { disputesApi } from "@/lib/api";
+import { useWallet } from "@/contexts/WalletContext";
 
 interface DisputeModalProps {
   isOpen: boolean;
   onClose: () => void;
   onResolve: (outcome: "Client" | "Freelancer") => void;
+  contractId: string;
 }
 
 type Vote = "pending" | "client" | "freelancer";
 
-export function DisputeModal({ isOpen, onClose, onResolve }: DisputeModalProps) {
+export function DisputeModal({ isOpen, onClose, onResolve, contractId }: DisputeModalProps) {
   const [phase, setPhase] = useState<"initial" | "voting" | "resolved">("initial");
   const [votes, setVotes] = useState<Vote[]>(["pending", "pending", "pending"]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { walletState } = useWallet();
 
   useEffect(() => {
     if (isOpen) {
@@ -23,7 +28,9 @@ export function DisputeModal({ isOpen, onClose, onResolve }: DisputeModalProps) 
     }
   }, [isOpen]);
 
-  // Simulate voting process
+  // Polling for voting status (in real app, we poll API)
+  // Here we still simulate the votes coming in for UX demonstration, 
+  // but the opening part is real.
   useEffect(() => {
     if (phase === "voting") {
       const t1 = setTimeout(() => setVotes(["client", "pending", "pending"]), 800);
@@ -40,6 +47,26 @@ export function DisputeModal({ isOpen, onClose, onResolve }: DisputeModalProps) 
       };
     }
   }, [phase]);
+
+  const handleOpenDispute = async () => {
+    if (!walletState.connected || !walletState.wallet || !walletState.address) {
+      alert("Vui lòng kết nối ví Cardano!");
+      return;
+    }
+    
+    try {
+      setIsSubmitting(true);
+      const res = await disputesApi.open(contractId, "Tranh chấp không thống nhất", walletState.address);
+      const signedTx = await walletState.wallet.signTx(res.unsignedTxCbor);
+      await walletState.wallet.submitTx(signedTx);
+      setPhase("voting");
+    } catch (e: any) {
+      console.error(e);
+      alert("Lỗi khi mở tranh chấp: " + (e.message || "Unknown error"));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -75,10 +102,15 @@ export function DisputeModal({ isOpen, onClose, onResolve }: DisputeModalProps) 
                 </p>
               </div>
               <button
-                onClick={() => setPhase("voting")}
-                className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold text-white rounded-xl shadow-md transition-all hover:bg-red-700 active:scale-[0.98] bg-red-600"
+                onClick={handleOpenDispute}
+                disabled={isSubmitting}
+                className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold text-white rounded-xl shadow-md transition-all hover:bg-red-700 active:scale-[0.98] bg-red-600 disabled:opacity-60"
               >
-                <ShieldAlert className="w-4 h-4" /> Bắt đầu Mô phỏng Vote
+                {isSubmitting ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" /> Đang xử lý tx...</>
+                ) : (
+                  <><ShieldAlert className="w-4 h-4" /> Bắt đầu Mở Tranh chấp (Ký Tx)</>
+                )}
               </button>
             </div>
           )}
