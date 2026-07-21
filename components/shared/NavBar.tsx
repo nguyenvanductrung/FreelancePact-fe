@@ -7,9 +7,8 @@ import { LogoIcon } from "@/components/LogoIcon";
 import { NAVY } from "@/constants";
 import { WalletConnectButton } from "@/components/web3/WalletConnectButton";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { AuthUser } from "@/types";
-import { authApi } from "@/lib/api";
-import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+import { LogOut } from "lucide-react";
 
 interface NavLink {
   href: string;
@@ -21,8 +20,6 @@ interface NavLink {
 interface NavBarProps {
   /** Which nav link is currently active (match by label) */
   activePage?: string;
-  /** Initials for the logged-in user avatar */
-  userInitials?: string;
 }
 
 const DEFAULT_NAV_LINKS: NavLink[] = [
@@ -33,40 +30,20 @@ const DEFAULT_NAV_LINKS: NavLink[] = [
   { href: "#", label: "Alerts", icon: <AlertCircle className="w-3.5 h-3.5" /> },
 ];
 
-export function NavBar({ activePage, userInitials = "JD" }: NavBarProps) {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [isSwitching, setIsSwitching] = useState(false);
+export function NavBar({ activePage }: NavBarProps) {
+  const { user, logout } = useAuth();
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const res = await authApi.me();
-        if (res.data) setUser(res.data);
-      } catch (err) {
-        // Silently ignore if not logged in
-      }
-    };
-    fetchUser();
-  }, []);
+  // Lấy initials từ fullName, fallback "?" nếu chưa đăng nhập
+  const userInitials = user?.fullName
+    ? user.fullName
+        .split(" ")
+        .map((n) => n[0])
+        .slice(0, 2)
+        .join("")
+        .toUpperCase()
+    : "?";
 
-  const getInitials = (name?: string) => {
-    if (!name) return userInitials;
-    return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
-  };
-
-  const handleSwitchRole = async (targetRole: "client" | "freelancer") => {
-    if (isSwitching) return;
-    setIsSwitching(true);
-    try {
-      const { profileApi } = await import("@/lib/api");
-      await profileApi.switchRole(targetRole);
-      window.location.href = targetRole === "client" ? "/dashboard/client" : "/dashboard";
-    } catch (e) {
-      console.error(e);
-      toast.error("Không thể chuyển đổi vai trò lúc này");
-      setIsSwitching(false);
-    }
-  };
+  const isClient = user?.role === "client";
 
   return (
     <nav
@@ -102,15 +79,18 @@ export function NavBar({ activePage, userInitials = "JD" }: NavBarProps) {
         })}
       </div>
 
-      {/* Right: bell + avatar */}
+      {/* Right side */}
       <div className="flex items-center gap-4 md:gap-5">
-        <Link
-          href="/jobs/new"
-          className="hidden md:flex items-center gap-1.5 px-4 py-2 bg-[#4F6AF5] text-white text-sm font-semibold rounded-full hover:bg-[#3d55d9] transition-all shadow-sm hover:shadow active:scale-95"
-        >
-          <Plus className="w-4 h-4" />
-          Post a Job
-        </Link>
+        {/* "Post a Job" — chỉ hiển thị cho client */}
+        {isClient && (
+          <Link
+            href="/jobs/new"
+            className="hidden md:flex items-center gap-1.5 px-4 py-2 bg-[#4F6AF5] text-white text-sm font-semibold rounded-full hover:bg-[#3d55d9] transition-all shadow-sm hover:shadow active:scale-95"
+          >
+            <Plus className="w-4 h-4" />
+            Post a Job
+          </Link>
+        )}
         <WalletConnectButton />
         <button
           className="relative p-1.5 text-gray-500 hover:text-gray-800 transition-colors"
@@ -129,38 +109,36 @@ export function NavBar({ activePage, userInitials = "JD" }: NavBarProps) {
           </PopoverTrigger>
           <PopoverContent align="end" className="w-56 p-2">
             <div className="flex flex-col gap-1">
-              {user?.fullName && (
-                <div className="px-3 py-2 border-b border-gray-100 mb-1">
-                  <p className="text-sm font-bold text-gray-800">{user.fullName}</p>
-                  <p className="text-xs text-gray-500 capitalize">Vai trò: {user.role}</p>
-                </div>
+              {/* User info */}
+              {user && (
+                <>
+                  <div className="px-3 py-2">
+                    <p className="text-xs font-semibold text-gray-800 truncate">
+                      {user.fullName}
+                    </p>
+                    <p className="text-xs text-gray-400 truncate">{user.email}</p>
+                    <span className="inline-block mt-1 px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-gray-100 text-gray-500 uppercase tracking-wide">
+                      {user.role}
+                    </span>
+                  </div>
+                  <div className="border-t border-gray-100 my-0.5" />
+                </>
               )}
+
               <Link
                 href="/profile"
                 className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
               >
                 Hồ sơ cá nhân
               </Link>
-              
-              {!user || user.role === "freelancer" ? (
-                <button
-                  disabled={isSwitching}
-                  className="w-full text-left px-3 py-2 text-sm text-blue-600 font-semibold hover:bg-blue-50 rounded-md transition-colors disabled:opacity-50"
-                  onClick={() => handleSwitchRole("client")}
-                >
-                  {isSwitching ? "Đang chuyển..." : "Chuyển sang Client"}
-                </button>
-              ) : null}
-              
-              {!user || user.role === "client" ? (
-                <button
-                  disabled={isSwitching}
-                  className="w-full text-left px-3 py-2 text-sm text-emerald-600 font-semibold hover:bg-emerald-50 rounded-md transition-colors disabled:opacity-50"
-                  onClick={() => handleSwitchRole("freelancer")}
-                >
-                  {isSwitching ? "Đang chuyển..." : "Chuyển sang Freelancer"}
-                </button>
-              ) : null}
+              <div className="border-t border-gray-100 my-0.5" />
+              <button
+                className="w-full text-left px-3 py-2 text-sm text-red-600 font-semibold hover:bg-red-50 rounded-md transition-colors flex items-center gap-2"
+                onClick={logout}
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                Đăng xuất
+              </button>
             </div>
           </PopoverContent>
         </Popover>

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useGoogleLogin } from "@react-oauth/google";
 import { authApi } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
@@ -47,6 +48,7 @@ import { LogoIcon } from "@/components/LogoIcon";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { setUser } = useAuth();
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [showPassword, setShowPassword] = useState<boolean>(false);
@@ -61,6 +63,10 @@ export default function LoginPage() {
         const res = await authApi.googleLogin(tokenResponse.access_token);
         localStorage.setItem("accessToken", res.data.accessToken);
         localStorage.setItem("refreshToken", res.data.refreshToken);
+        
+        const meRes = await authApi.me();
+        setUser(meRes.data);
+        
         router.push("/contracts");
       } catch (err: any) {
         setError(err.message || "Đăng nhập Google thất bại");
@@ -93,6 +99,9 @@ export default function LoginPage() {
       // Save tokens
       localStorage.setItem("accessToken", data.data.accessToken);
       localStorage.setItem("refreshToken", data.data.refreshToken);
+      
+      const meRes = await authApi.me();
+      setUser(meRes.data);
       
       // Redirect
       router.push("/contracts");
