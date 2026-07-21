@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import GoogleAuthProvider from "@/components/providers/GoogleAuthProvider";
 import { WalletContextProvider } from "@/contexts/WalletContext";
+import { AuthContextProvider } from "@/contexts/AuthContext";
 import { Toaster } from "sonner";
 import dynamic from "next/dynamic";
 
@@ -40,10 +41,12 @@ export default function RootLayout({
       >
         <GoogleAuthProvider>
           <WalletContextProvider>
-            <SocketProvider>
-              {children}
-              <Toaster />
-            </SocketProvider>
+            <AuthContextProvider>
+              <SocketProvider>
+                {children}
+                <Toaster />
+              </SocketProvider>
+            </AuthContextProvider>
           </WalletContextProvider>
         </GoogleAuthProvider>
       </body>
