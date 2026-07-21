@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { WalletState, WalletProvider } from "@/types/web3";
-import { mockConnectWallet } from "@/lib/mock-web3";
+import { BrowserWallet } from '@meshsdk/core';
 
 interface WalletContextType {
   walletState: WalletState;
@@ -28,12 +28,13 @@ export function WalletContextProvider({ children }: { children: ReactNode }) {
 
   // Load from localStorage on mount
   useEffect(() => {
-    const saved = localStorage.getItem("fp_wallet_mock");
+    const saved = localStorage.getItem("fp_wallet_real");
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (parsed && parsed.connected) {
-          setWalletState(parsed);
+        if (parsed && parsed.provider) {
+          // auto reconnect in background
+          connectWallet(parsed.provider);
         }
       } catch (e) {
         console.error("Failed to parse wallet state", e);
@@ -45,11 +46,28 @@ export function WalletContextProvider({ children }: { children: ReactNode }) {
     setIsConnecting(true);
     setConnectingProvider(provider);
     try {
-      const state = await mockConnectWallet(provider);
+      const wallet = await BrowserWallet.enable(provider);
+      const addresses = await wallet.getUsedAddresses();
+      const address = addresses[0] || (await wallet.getChangeAddress());
+      
+      const balanceArr = await wallet.getBalance();
+      const lovelace = balanceArr.find((asset) => asset.unit === 'lovelace')?.quantity;
+      const balanceAda = lovelace ? Number(lovelace) / 1000000 : 0;
+      
+      const state: WalletState = {
+        connected: true,
+        provider,
+        address,
+        balanceAda,
+        wallet,
+      };
+      
       setWalletState(state);
-      localStorage.setItem("fp_wallet_mock", JSON.stringify(state));
+      // We only save the provider name, not the whole state/wallet instance
+      localStorage.setItem("fp_wallet_real", JSON.stringify({ provider }));
     } catch (error) {
       console.error("Failed to connect wallet", error);
+      alert("Kết nối ví thất bại. Vui lòng kiểm tra lại tiện ích ví (Nami/Eternl).");
     } finally {
       setIsConnecting(false);
       setConnectingProvider(null);
@@ -58,7 +76,7 @@ export function WalletContextProvider({ children }: { children: ReactNode }) {
 
   const disconnectWallet = () => {
     setWalletState(defaultState);
-    localStorage.removeItem("fp_wallet_mock");
+    localStorage.removeItem("fp_wallet_real");
   };
 
   return (

@@ -273,6 +273,7 @@ export function EscrowStatusCard({
       </div>
 
       <DisputeModal
+        contractId={contractId}
         isOpen={isDisputeModalOpen}
         onClose={() => setIsDisputeModalOpen(false)}
         onResolve={(outcome) => {

@@ -98,7 +98,7 @@ export default function ClientDashboardPage() {
       setLoadingJobs(true);
       try {
         const jobs = await jobsApi.getMyJobs();
-        setPostedJobs(jobs);
+        setPostedJobs(jobs.data);
       } catch (error) {
         console.error("Failed to fetch my jobs, using mock data", error);
         setPostedJobs([
@@ -319,11 +319,10 @@ export default function ClientDashboardPage() {
                       </td>
                       <td className="px-6 py-4">
                         <Link
-                          href={`/jobs/${job.id}`}
-                          className="inline-flex items-center justify-center px-4 py-1.5 text-xs font-semibold text-white rounded-lg transition-colors hover:opacity-90"
-                          style={{ backgroundColor: "#1B2A4A" }}
+                          href={`/jobs/${job.id}/applicants`}
+                          className="inline-flex items-center justify-center px-4 py-1.5 text-xs font-semibold text-[#4F6AF5] bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
                         >
-                          Chi tiết
+                          Xem ứng viên
                         </Link>
                       </td>
                     </tr>

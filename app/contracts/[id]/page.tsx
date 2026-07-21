@@ -269,25 +269,11 @@ function DiscussionPanel({ contractId, currentUser }: { contractId: string; curr
     if (!trimmed || isSending) return;
     setIsSending(true);
     try {
-      const token = localStorage.getItem("accessToken");
-      console.log("[DEBUG] Token:", token ? "present" : "MISSING");
-      const res = await fetch(
-        `http://localhost:3001/api/v1/contracts/${contractId}/messages`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          body: JSON.stringify({ type: "TEXT", text: trimmed }),
-        }
-      );
-      const data = await res.json();
-      console.log("[DEBUG] Response:", res.status, data);
-      if (!res.ok) {
-        toast.error(`Lỗi ${res.status}: ${data.message} — errors: ${JSON.stringify(data.errors)}`);
-        return;
-      }
+      await chatApi.sendMessage({
+        contractId,
+        type: "TEXT",
+        text: trimmed,
+      });
       setInput("");
     } catch (err: any) {
       console.error("Failed to send message:", err);

@@ -84,7 +84,7 @@ export interface CreateContractPayload {
 
 // ─── Chat / Discussion ────────────────────────────────────────────────────────
 
-export type MessageType = "text" | "file" | "system";
+export type MessageType = "text" | "file" | "system" | "TEXT" | "FILE" | "SYSTEM";
 
 export interface ChatMessage {
   id: string;

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Bell, Briefcase, MessageSquare, User, AlertCircle, Search, Plus } from "lucide-react";
 import { LogoIcon } from "@/components/LogoIcon";
@@ -24,7 +25,7 @@ interface NavBarProps {
 const DEFAULT_NAV_LINKS: NavLink[] = [
   { href: "/jobs", label: "Find Work", icon: <Search className="w-3.5 h-3.5" /> },
   { href: "/contracts", label: "Contracts", icon: <Briefcase className="w-3.5 h-3.5" /> },
-  { href: "/chat", label: "Chat", icon: <MessageSquare className="w-3.5 h-3.5" /> },
+  { href: "/messages", label: "Chat", icon: <MessageSquare className="w-3.5 h-3.5" /> },
   { href: "/profile", label: "Profile", icon: <User className="w-3.5 h-3.5" /> },
   { href: "#", label: "Alerts", icon: <AlertCircle className="w-3.5 h-3.5" /> },
 ];
@@ -104,7 +105,7 @@ export function NavBar({ activePage }: NavBarProps) {
             style={{ background: "linear-gradient(135deg, #7E57C2, #512DA8)" }}
             aria-label="Profile menu"
           >
-            {userInitials}
+            {getInitials(user?.fullName)}
           </PopoverTrigger>
           <PopoverContent align="end" className="w-56 p-2">
             <div className="flex flex-col gap-1">
