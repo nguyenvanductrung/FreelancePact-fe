@@ -108,20 +108,49 @@ export function EscrowStatusCard({
   const showNotConnected = status === "PENDING_DEPOSIT" && !walletState.connected;
 
   const handleDeposit = async () => {
+    if (!walletState.connected || !walletState.wallet || !walletState.address) {
+      alert("Vui lòng kết nối ví để nạp ADA!");
+      return;
+    }
+
     setIsDepositing(true);
     try {
-      // Simulate 1.5s on-chain deposit UX + Call real API
-      await Promise.all([
-        new Promise((r) => setTimeout(r, 1500)),
-        contractsApi.fund(contractId)
-      ]);
-      const next: EscrowStatus = "FUNDED";
-      setStatus(next);
-      onStatusChange?.(next);
-    } catch (err) {
+      // 1. Khởi tạo giao dịch
+      const res = await contractsApi.buildFundTx(contractId, walletState.address);
+      
+      // 2. User ký giao dịch (không dùng partial sign vì chỉ 1 người ký)
+      const signedTxCbor = await walletState.wallet.signTx(res.unsignedTxCbor);
+      
+      // 3. Gửi lên mạng lưới
+      await contractsApi.submitFundTx(contractId, signedTxCbor);
+      
+      // 4. Chờ xác nhận (Polling)
+      let attempts = 0;
+      const pollInterval = setInterval(async () => {
+        attempts++;
+        try {
+          const c = await contractsApi.getContractById(contractId);
+          if (c.status === "active") {
+            clearInterval(pollInterval);
+            setStatus("FUNDED");
+            onStatusChange?.("FUNDED");
+            setIsDepositing(false);
+          }
+        } catch (e) {
+          console.error("Poll error", e);
+        }
+
+        if (attempts > 12) { // 12 * 5s = 60s
+          clearInterval(pollInterval);
+          setIsDepositing(false);
+          alert("Giao dịch đang được xử lý trên mạng Cardano (có thể mất thêm thời gian). Vui lòng F5 trang lại sau.");
+        }
+      }, 5000);
+      
+      return; // prevent setting isDepositing to false immediately
+    } catch (err: any) {
       console.error("Deposit failed:", err);
-      // Fallback or show error toast in real app
-    } finally {
+      alert("Lỗi nạp tiền: " + err.message);
       setIsDepositing(false);
     }
   };

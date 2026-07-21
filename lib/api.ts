@@ -164,14 +164,23 @@ export const contractsApi = {
     }),
 
   /**
-   * POST /contracts/:id/fund  (Mock Deposit ADA)
-   * Header: Bearer token
-   * Response: ContractDetail (updated, status → ACTIVE)
+   * POST /contracts/:id/fund/build
    */
-  fund: (id: string) =>
-    request<ApiResponse<ContractDetail>>(`/contracts/${id}/fund`, {
+  buildFundTx: (id: string, clientWalletAddress: string) =>
+    request<any>(`/contracts/${id}/fund/build`, {
       method: "POST",
       headers: authHeaders(),
+      body: JSON.stringify({ clientWalletAddress }),
+    }),
+
+  /**
+   * POST /contracts/:id/fund/submit
+   */
+  submitFundTx: (id: string, signedTxCbor: string) =>
+    request<any>(`/contracts/${id}/fund/submit`, {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify({ signedTxCbor }),
     }),
 
   /**
@@ -266,6 +275,7 @@ export const paymentsApi = {
     request<Payment[]>(`/contracts/${contractId}/payments`, {
       headers: authHeaders(),
     }),
+
 };
 
 // ─── Milestones API ────────────────────────────────────────────────────────────
