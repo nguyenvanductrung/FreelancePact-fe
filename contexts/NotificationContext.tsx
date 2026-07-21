@@ -4,7 +4,37 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { io, type Socket } from "socket.io-client";
 import { API_BASE_URL } from "@/constants";
-import { authApi, notificationApi } from "@/lib/api";
+import { authApi } from "@/lib/api";
+
+const notificationApi = {
+  async list(page: number, limit: number) {
+    const response = await fetch(`${API_BASE_URL}/notifications?page=${page}&limit=${limit}`, {
+      credentials: "include",
+    });
+    if (!response.ok) {
+      throw new Error("Failed to load notifications");
+    }
+    return { data: await response.json() };
+  },
+  async markAsRead(id: string) {
+    const response = await fetch(`${API_BASE_URL}/notifications/${id}/read`, {
+      method: "POST",
+      credentials: "include",
+    });
+    if (!response.ok) {
+      throw new Error("Failed to mark notification as read");
+    }
+  },
+  async markAllAsRead() {
+    const response = await fetch(`${API_BASE_URL}/notifications/read-all`, {
+      method: "POST",
+      credentials: "include",
+    });
+    if (!response.ok) {
+      throw new Error("Failed to mark all notifications as read");
+    }
+  },
+};
 
 export type NotificationType = "contract" | "milestone" | "payment" | "dispute" | "system";
 
