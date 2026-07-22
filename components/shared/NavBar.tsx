@@ -30,7 +30,7 @@ const DEFAULT_NAV_LINKS: NavLink[] = [
   { href: "/contracts", label: "Contracts", icon: <Briefcase className="w-3.5 h-3.5" /> },
   { href: "/messages", label: "Chat", icon: <MessageSquare className="w-3.5 h-3.5" /> },
   { href: "/profile", label: "Profile", icon: <User className="w-3.5 h-3.5" /> },
-  { href: "#", label: "Alerts", icon: <AlertCircle className="w-3.5 h-3.5" /> },
+  { href: "/notifications", label: "Notifications", icon: <AlertCircle className="w-3.5 h-3.5" /> },
 ];
 
 export function NavBar({ activePage, userInitials = "JD" }: NavBarProps) {
