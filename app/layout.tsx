@@ -1,7 +1,17 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
-import GoogleAuthProvider from "@/components/providers/GoogleAuthProvider";const geistSans = localFont({
+import GoogleAuthProvider from "@/components/providers/GoogleAuthProvider";
+import { WalletContextProvider } from "@/contexts/WalletContext";
+import { Toaster } from "sonner";
+import dynamic from "next/dynamic";
+
+const SocketProvider = dynamic(
+  () => import("@/components/providers/SocketProvider").then((mod) => mod.SocketProvider),
+  { ssr: false }
+);
+
+const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
   variable: "--font-geist-sans",
   weight: "100 900",
@@ -29,7 +39,12 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} font-[family-name:var(--font-geist-sans)] antialiased`}
       >
         <GoogleAuthProvider>
-          {children}
+          <WalletContextProvider>
+            <SocketProvider>
+              {children}
+              <Toaster />
+            </SocketProvider>
+          </WalletContextProvider>
         </GoogleAuthProvider>
       </body>
     </html>

@@ -2,7 +2,8 @@
 
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { X, UploadCloud, FileText, FileImage, Archive, Trash2, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
-import { Milestone } from "@/types";
+import { Milestone, ContractDetail } from "@/types";
+import { milestonesApi } from "@/lib/api";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -17,8 +18,8 @@ interface AttachedFile {
 interface SubmitMilestoneModalProps {
   milestone: Pick<Milestone, "id" | "name" | "budget" | "deadline">;
   onClose: () => void;
-  /** Called after a successful submission — parent should refresh milestone list */
-  onSuccess?: (milestoneId: string) => void;
+  /** Called after a successful submission — parent should refresh contract data */
+  onSuccess?: (updatedContract: ContractDetail) => void;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -143,25 +144,16 @@ export function SubmitMilestoneModal({ milestone, onClose, onSuccess }: SubmitMi
 
     setIsSubmitting(true);
     try {
-      // TODO: replace with real API call
-      // const fileUrls = await Promise.all(files.map(uploadFile));
-      // await fetch(`/api/v1/milestones/${milestone.id}/submit`, {
-      //   method: "POST",
-      //   headers: {
-      //     "Content-Type": "application/json",
-      //     Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-      //   },
-      //   body: JSON.stringify({ description: description.trim(), fileUrls }),
-      // });
-
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 1200));
+      const updatedContract = await milestonesApi.submit(milestone.id, {
+        submissionNote: description.trim(),
+        fileUrls: [], // File upload not implemented yet (Phase 2)
+      });
 
       setShowToast(true);
-      onSuccess?.(milestone.id);
+      onSuccess?.(updatedContract);
       setTimeout(onClose, 500);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Submission failed. Please try again.");
+    } catch (err: any) {
+      setError(err?.message ?? "Submission failed. Please try again.");
     } finally {
       setIsSubmitting(false);
     }

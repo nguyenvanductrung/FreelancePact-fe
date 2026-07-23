@@ -29,8 +29,8 @@ export default function ApplicantsPage() {
         jobsApi.getById(id),
         jobsApi.getApplications(id)
       ]);
-      setJob(jobData);
-      setApplications(appsData);
+      setJob(jobData.data);
+      setApplications(appsData.data);
     } catch (err: any) {
       setError("Failed to load applicants: " + (err.message || ""));
     } finally {
@@ -49,7 +49,7 @@ export default function ApplicantsPage() {
     try {
       const res = await jobsApi.selectFreelancer(id, applicationId);
       // Redirect to the new draft contract to finish it
-      router.push(`/contracts/${res.contractId}`);
+      router.push(`/contracts/${res.data.contractId}`);
     } catch (err: any) {
       setError(err.message || "Failed to select freelancer");
       setSelectingId(null);

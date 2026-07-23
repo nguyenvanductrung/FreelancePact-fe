@@ -2,6 +2,7 @@
 
 import { useState, FormEvent } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Plus,
   Trash2,
@@ -128,6 +129,7 @@ function MilestoneRow({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function CreateContractPage() {
+  const router = useRouter();
   const [contractTitle, setContractTitle] = useState("");
   const [partnerName, setPartnerName] = useState("");
   const [description, setDescription] = useState("");
@@ -182,11 +184,8 @@ export default function CreateContractPage() {
     };
 
     try {
-      // TODO: replace console.log with real API call when BE is ready
-      // const result = await contractsApi.create(payload);
-      // router.push(`/contracts/${result.data.id}`);
-      console.log("📄 Create Contract payload:", payload);
-      alert("Hợp đồng đã được tạo thành công! (xem console)");
+      const result = await contractsApi.create(payload);
+      router.push(`/contracts/${result.data.id}`);
     } catch (err: unknown) {
       const message = (err as { message?: string })?.message ?? "Đã xảy ra lỗi.";
       setError(message);

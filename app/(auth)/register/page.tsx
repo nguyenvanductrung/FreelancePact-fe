@@ -42,24 +42,6 @@ function GoogleIcon() {
   );
 }
 
-function LinkedInIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      width="20"
-      height="20"
-      aria-hidden="true"
-    >
-      <rect width="24" height="24" rx="4" fill="#0A66C2" />
-      <path
-        d="M7.75 9.5H5.25v9h2.5v-9zM6.5 8.5a1.25 1.25 0 1 0 0-2.5 1.25 1.25 0 0 0 0 2.5zM18.75 18.5h-2.5v-4.25c0-1.014-.363-1.625-1.25-1.625-.875 0-1.25.611-1.25 1.625V18.5h-2.5v-9h2.5v1.2c.375-.688 1.1-1.45 2.375-1.45 1.763 0 2.625 1.163 2.625 3.438V18.5z"
-        fill="#fff"
-      />
-    </svg>
-  );
-}
-
 // ─── Register Form Component ────────────────────────────────────────────────
 
 function RegisterForm() {
@@ -73,6 +55,7 @@ function RegisterForm() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [walletAddress, setWalletAddress] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -109,7 +92,7 @@ function RegisterForm() {
       const res = await fetch("http://localhost:3001/api/v1/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fullName, email, password, role }),
+        body: JSON.stringify({ fullName, email, password, role, walletAddress }),
       });
 
       const data = await res.json();
@@ -166,14 +149,6 @@ function RegisterForm() {
             >
               <GoogleIcon />
               Đăng ký với Google
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full h-11 text-sm font-medium gap-3 border-gray-300 hover:bg-gray-50 text-gray-700"
-            >
-              <LinkedInIcon />
-              Đăng ký với LinkedIn
             </Button>
           </div>
 
@@ -273,6 +248,21 @@ function RegisterForm() {
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
+            </div>
+
+            {/* Wallet Address */}
+            <div className="space-y-1.5">
+              <label htmlFor="walletAddress" className="text-sm font-medium text-gray-700">
+                Địa chỉ ví Cardano (Tùy chọn)
+              </label>
+              <Input
+                id="walletAddress"
+                type="text"
+                placeholder="addr1..."
+                value={walletAddress}
+                onChange={(e) => setWalletAddress(e.target.value)}
+                className="h-11 border-gray-300 focus-visible:ring-[#1E3A5F]/40 focus-visible:border-[#1E3A5F]"
+              />
             </div>
 
             {/* Checkbox Terms */}
