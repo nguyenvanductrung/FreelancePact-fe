@@ -55,7 +55,6 @@ function RegisterForm() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [walletAddress, setWalletAddress] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -92,7 +91,7 @@ function RegisterForm() {
       const res = await fetch("http://localhost:3001/api/v1/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fullName, email, password, role, walletAddress }),
+        body: JSON.stringify({ fullName, email, password, role }),
       });
 
       const data = await res.json();
@@ -250,20 +249,6 @@ function RegisterForm() {
               </div>
             </div>
 
-            {/* Wallet Address */}
-            <div className="space-y-1.5">
-              <label htmlFor="walletAddress" className="text-sm font-medium text-gray-700">
-                Địa chỉ ví Cardano (Tùy chọn)
-              </label>
-              <Input
-                id="walletAddress"
-                type="text"
-                placeholder="addr1..."
-                value={walletAddress}
-                onChange={(e) => setWalletAddress(e.target.value)}
-                className="h-11 border-gray-300 focus-visible:ring-[#1E3A5F]/40 focus-visible:border-[#1E3A5F]"
-              />
-            </div>
 
             {/* Checkbox Terms */}
             <div className="flex items-start gap-3">

@@ -65,6 +65,14 @@ export function WalletContextProvider({ children }: { children: ReactNode }) {
       setWalletState(state);
       // We only save the provider name, not the whole state/wallet instance
       localStorage.setItem("fp_wallet_real", JSON.stringify({ provider }));
+
+      // Sync wallet address to backend if user is logged in
+      try {
+        const { profileApi } = await import("@/lib/api");
+        await profileApi.update({ walletAddress: address });
+      } catch (e) {
+        console.error("Could not sync wallet to backend (maybe not logged in):", e);
+      }
     } catch (error) {
       console.error("Failed to connect wallet", error);
       alert("Kết nối ví thất bại. Vui lòng kiểm tra lại tiện ích ví (Nami/Eternl).");
